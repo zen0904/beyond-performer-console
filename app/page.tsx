@@ -129,6 +129,7 @@ function LedEncoder({
   const valueRef = useRef(initial);
   const drags = useRef<Map<number, { startY: number; startValue: number }>>(new Map());
   const lastTap = useRef(0);
+  const LED_COUNT = 19;
 
   const setVal = (nextValue: number, pointerId: number, type = "controlChange") => {
     const next = clamp(Math.round(nextValue));
@@ -140,35 +141,49 @@ function LedEncoder({
   const down = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     const now = performance.now();
+
+    // Double-tap = reset to the mapped/default value.
     if (now - lastTap.current < 320) {
       lastTap.current = 0;
       setVal(defaultValue, event.pointerId);
       return;
     }
+
     lastTap.current = now;
     event.currentTarget.setPointerCapture(event.pointerId);
-    drags.current.set(event.pointerId, { startY: event.clientY, startValue: valueRef.current });
+    drags.current.set(event.pointerId, {
+      startY: event.clientY,
+      startValue: valueRef.current,
+    });
     onEvent("controlDown", id, valueRef.current, event.pointerId);
   };
 
   const move = (event: PointerEvent<HTMLDivElement>) => {
     const drag = drags.current.get(event.pointerId);
     if (!drag) return;
-    // Deliberately slower than the previous prototype.
-    setVal(drag.startValue + ((drag.startY - event.clientY) / 240) * 127, event.pointerId);
+
+    // Slow, predictable touch travel. No acceleration.
+    setVal(
+      drag.startValue + ((drag.startY - event.clientY) / 260) * 127,
+      event.pointerId
+    );
   };
 
   const end = (event: PointerEvent<HTMLDivElement>, cancelled = false) => {
     if (!drags.current.has(event.pointerId)) return;
     drags.current.delete(event.pointerId);
-    onEvent(cancelled ? "controlCancel" : "controlUp", id, valueRef.current, event.pointerId);
+    onEvent(
+      cancelled ? "controlCancel" : "controlUp",
+      id,
+      valueRef.current,
+      event.pointerId
+    );
   };
 
-  const ringPct = (value / 127) * 100;
-  const turn = -135 + (value / 127) * 270;
+  const activeLeds = Math.round((value / 127) * (LED_COUNT - 1));
 
   return (
-    <div className="encoder-unit" style={{ "--accent": accent, "--ringPct": `${ringPct}%` } as React.CSSProperties}>
+    <div className="encoder-unit" style={{ "--accent": accent } as React.CSSProperties}>
       <div
         className="encoder-touch"
         onPointerDown={down}
@@ -177,8 +192,22 @@ function LedEncoder({
         onPointerCancel={(e) => end(e, true)}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div className="encoder-led-ring" />
-        <div className="encoder-knob" style={{ transform: `rotate(${turn}deg)` }}><i /></div>
+        <div className="encoder-led-ring" aria-hidden="true">
+          {Array.from({ length: LED_COUNT }, (_, i) => {
+            const angle = -135 + (270 / (LED_COUNT - 1)) * i;
+            return (
+              <i
+                key={i}
+                className={`encoder-led ${i <= activeLeds ? "on" : ""}`}
+                style={{ "--angle": `${angle}deg` } as React.CSSProperties}
+              />
+            );
+          })}
+        </div>
+
+        {/* Endless encoder cap deliberately has NO position stripe.
+            Position/state is represented only by the LED ring. */}
+        <div className="encoder-knob" />
       </div>
       <span className="encoder-label">{label}</span>
     </div>
@@ -529,7 +558,7 @@ export default function Home() {
 
         <div className="status-strip">
           <span>Layer {layer}: {layerCaption}</span>
-          <b>{activeCount} TOUCH</b>
+          <b>{activeCount} TOUCH · FEEDBACK READY</b>
         </div>
       </section>
     </main>

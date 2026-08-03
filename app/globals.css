@@ -35,7 +35,7 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
   position:relative;
   width:100vw;
   height:100dvh;
-  padding:.7vw;
+  padding:max(.55vw,env(safe-area-inset-top)) max(.55vw,env(safe-area-inset-right)) max(.45vw,env(safe-area-inset-bottom)) max(.55vw,env(safe-area-inset-left));
   display:grid;
   grid-template-rows:13.5% 35.7% 20.8% 28.2%;
   gap:.55%;
@@ -70,7 +70,7 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 /* top */
 .top-zone{
   display:grid;
-  grid-template-columns:58% 42%;
+  grid-template-columns:minmax(0,58fr) minmax(0,42fr);
   gap:1.1%;
   min-height:0
 }
@@ -92,28 +92,57 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 }
 
 /* generic buttons */
+/*
+  Important state model:
+  - idle = translucent white/grey, like un-driven hardware
+  - touch/selected = immediate strong local highlight
+  - later BEYOND MIDI feedback can provide the --accent/state authority
+*/
 .surface-button{
   position:relative;
-  border:1px solid #050605;
-  background:linear-gradient(#e5e5d9,#a9aca5);
-  box-shadow:inset 0 0 0 1px #fff8,0 1px 3px #000d;
+  border:1px solid #080908;
+  background:linear-gradient(#f3f2ea,#a9aca5);
+  box-shadow:
+    inset 0 0 0 1px #ffffffb0,
+    inset 0 -5px 12px #00000020,
+    0 1px 3px #000d;
   outline:none;
-  overflow:visible
+  overflow:visible;
+  transition:transform 45ms linear,filter 45ms linear
 }
 .surface-button:after{
   content:"";
   position:absolute;
   inset:7%;
   border-radius:inherit;
-  background:var(--accent);
-  opacity:.47;
-  box-shadow:0 0 9px color-mix(in srgb,var(--accent),transparent 35%)
+  background:#eef0e8;
+  opacity:.72;
+  box-shadow:
+    inset 0 0 8px #ffffffa0,
+    0 0 3px #ffffff20
 }
 .surface-button.is-active:after{
-  opacity:.98;
-  box-shadow:0 0 17px var(--accent),inset 0 0 7px #fff
+  background:var(--accent);
+  opacity:1;
+  box-shadow:
+    0 0 18px var(--accent),
+    0 0 5px #fff,
+    inset 0 0 9px #fff
 }
-.surface-button.is-active{transform:translateY(1px)}
+.surface-button.is-active{
+  transform:translateY(1px) scale(.985);
+  filter:brightness(1.14)
+}
+.surface-button.is-active:before{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border:2px solid #ffffffde;
+  border-radius:inherit;
+  box-shadow:0 0 13px color-mix(in srgb,var(--accent),transparent 20%);
+  pointer-events:none;
+  z-index:4
+}
 .button-label{
   position:absolute;
   z-index:5;
@@ -147,31 +176,57 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
   position:absolute;
   inset:0;
   border-radius:50%;
-  background:
-    repeating-conic-gradient(from 145deg,var(--accent) 0deg 7deg,transparent 7deg 14deg);
-  filter:drop-shadow(0 0 2px var(--accent));
-  -webkit-mask:radial-gradient(circle,transparent 0 59%,#000 61% 76%,transparent 78%);
-  mask:radial-gradient(circle,transparent 0 59%,#000 61% 76%,transparent 78%);
-  opacity:.92
+  pointer-events:none
 }
+.encoder-led{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:7.8%;
+  height:12%;
+  min-width:2px;
+  border-radius:40%;
+  transform:
+    translate(-50%,-50%)
+    rotate(var(--angle))
+    translateY(-345%);
+  transform-origin:center;
+  background:#4c514b;
+  border:1px solid #161815;
+  opacity:.55;
+  box-shadow:inset 0 0 2px #fff2
+}
+.encoder-led.on{
+  background:var(--accent);
+  border-color:color-mix(in srgb,var(--accent),#111 45%);
+  opacity:1;
+  box-shadow:
+    0 0 5px var(--accent),
+    0 0 10px color-mix(in srgb,var(--accent),transparent 35%),
+    inset 0 0 2px #fff
+}
+
+/* Flat cylindrical cap. Endless encoder = no position stripe / no pointer mark. */
 .encoder-knob{
-  width:57%;
+  width:58%;
   aspect-ratio:1;
   border-radius:50%;
-  background:radial-gradient(circle at 35% 28%,#5d615b,#20221f 48%,#080908 76%);
-  border:1px solid #020302;
-  box-shadow:0 2px 5px #000;
+  background:
+    linear-gradient(180deg,#30332f 0%,#242723 12%,#171916 76%,#0d0f0d 100%);
+  border:1px solid #080908;
+  box-shadow:
+    inset 0 1px 0 #696e6638,
+    inset 0 -4px 7px #0007,
+    0 2px 4px #000c;
   position:relative
 }
-.encoder-knob i{
+.encoder-knob:after{
+  content:"";
   position:absolute;
-  width:7%;
-  height:39%;
-  left:46.5%;
-  top:8%;
-  border-radius:9px;
-  background:#ddd;
-  box-shadow:0 0 4px var(--accent)
+  inset:11%;
+  border-radius:50%;
+  border:1px solid #41463f55;
+  box-shadow:inset 0 1px 2px #ffffff10
 }
 .encoder-label{
   font-size:clamp(4px,.52vw,8.5px);
@@ -189,7 +244,7 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 }
 .absolute-knob-touch{
   position:relative;
-  width:min(72%,46px);
+  width:min(62%,40px);
   aspect-ratio:1;
   display:grid;
   place-items:center;
@@ -206,22 +261,26 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
   mask:radial-gradient(circle,transparent 0 65%,#000 67% 72%,transparent 74%)
 }
 .absolute-knob{
-  width:63%;
+  width:64%;
   aspect-ratio:1;
   border-radius:50%;
-  background:radial-gradient(circle at 34% 27%,#565a54,#1c1e1b 52%,#070807 78%);
-  border:1px solid #020302;
-  box-shadow:0 2px 4px #000;
+  background:linear-gradient(180deg,#30332f 0%,#22251f 14%,#141613 78%,#0b0c0a 100%);
+  border:1px solid #060706;
+  box-shadow:
+    inset 0 1px 0 #777d7440,
+    inset 0 -4px 7px #0007,
+    0 2px 4px #000;
   position:relative
 }
 .absolute-knob i{
   position:absolute;
-  width:7%;
-  height:38%;
-  left:46.5%;
-  top:8%;
-  border-radius:8px;
-  background:#deded4
+  width:5%;
+  height:28%;
+  left:47.5%;
+  top:10%;
+  border-radius:3px;
+  background:#deded4;
+  opacity:.8
 }
 .absolute-knob-unit>span{
   font-size:clamp(4px,.49vw,8px);
@@ -232,7 +291,7 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 /* grids */
 .upper-zone,.middle-zone,.bottom-zone{
   display:grid;
-  grid-template-columns:40.5% 59.5%;
+  grid-template-columns:minmax(0,40.5fr) minmax(0,59.5fr);
   gap:1.05%;
   min-height:0
 }
@@ -275,16 +334,19 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 .left-middle{
   position:relative;
   display:grid;
-  grid-template-rows:35% 31% 34%;
-  min-height:0
+  grid-template-rows:minmax(0,31fr) minmax(0,28fr) minmax(0,41fr);
+  row-gap:2.2%;
+  min-height:0;
+  overflow:hidden
 }
 .small-knob-section,.qshift-knobs{
   position:relative;
   display:grid;
   grid-template-columns:repeat(8,1fr);
   gap:1.5%;
-  align-items:end;
-  padding-top:6%
+  align-items:center;
+  padding:11% 1% 0;
+  min-height:0
 }
 .mini-group-title{
   position:absolute;
@@ -298,12 +360,13 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
 .cc-row{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:7%;
+  gap:5%;
   align-items:center;
-  padding:1% 3%;
-  position:relative
+  padding:8% 3% 1%;
+  position:relative;
+  min-height:0
 }
-.cc-button{aspect-ratio:1;width:100%;border-radius:4%}
+.cc-button{aspect-ratio:1;width:min(72%,54px);max-height:54px;border-radius:4%;justify-self:center}
 .cc-button .button-label{bottom:-30%;font-size:clamp(4px,.54vw,9px)}
 .color-pallet{
   position:absolute;
@@ -516,3 +579,14 @@ button{font:inherit;color:inherit;appearance:none;-webkit-appearance:none}
   }
   .page-shell{visibility:hidden}
 }
+
+
+/* V3 touch polish */
+.qshift-knobs{padding-top:9%}
+.qshift-knobs .absolute-knob-touch{width:min(58%,38px)}
+.small-knob-section .absolute-knob-touch{width:min(58%,38px)}
+.cc-row + .qshift-knobs{isolation:isolate}
+.grid2-block,.grid1-block,.left-middle,.right-middle,.left-fader-bank,.right-performance-bank{overflow:hidden}
+.master-key .button-label{bottom:50%;transform:translate(-50%,50%);color:#171916;text-shadow:none;font-weight:600}
+.layer-key.is-active:after{background:var(--accent)}
+.status-strip{opacity:.75}
