@@ -9,14 +9,8 @@ export const metadata: Metadata = {
   description: "iPad multi-touch digital performer console.",
   manifest: `${basePath}/manifest.webmanifest`,
   icons: {
-    icon: [
-      { url: `${basePath}/favicon.svg`, type: "image/svg+xml" },
-      { url: `${basePath}/icon-192.png`, sizes: "192x192", type: "image/png" },
-      { url: `${basePath}/icon-512.png`, sizes: "512x512", type: "image/png" },
-    ],
-    apple: [
-      { url: `${basePath}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
-    ],
+    icon: [{ url: `${basePath}/favicon.svg`, type: "image/svg+xml" }],
+    apple: [{ url: `${basePath}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
@@ -31,17 +25,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#080909",
+  themeColor: "#0b0d0b",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: ReactNode;
-}>) {
-  return (
-    <html lang="zh-Hant">
-      <body>{children}</body>
-    </html>
-  );
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return <html lang="zh-Hant"><body>{children}</body></html>;
 }
