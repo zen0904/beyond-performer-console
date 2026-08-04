@@ -2,8 +2,8 @@ export type Layer = 1 | 2 | 3 | 4;
 
 export type MidiBinding = {
   type: "note" | "cc";
-  channel: number; // 1-based MIDI channel
-  number: number;  // note/CC number
+  channel: number;
+  number: number;
   layer?: Layer;
 };
 
@@ -17,10 +17,7 @@ export const MAIN_GRID_NOTES = [
 ] as const;
 
 export const LAYER_SWITCH_NOTES: Record<Layer, number> = {
-  1: 0x40,
-  2: 0x41,
-  3: 0x42,
-  4: 0x43,
+  1: 0x40, 2: 0x41, 3: 0x42, 4: 0x43,
 };
 
 export const BUTTON_NOTES = {
@@ -28,17 +25,14 @@ export const BUTTON_NOTES = {
   blackout: 0x0D,
   pause: 0x0E,
   enableDisable: 0x0F,
-
-  bpmHalf: 0x44,
-  bpmDouble: 0x45,
-  bpmResync: 0x46,
-  bpmTap: 0x47,
-
   transition: 0x48,
   back: 0x4A,
   swap: 0x4B,
   tapTempo: 0x4D,
-
+  bpmHalf: 0x44,
+  bpmDouble: 0x45,
+  bpmResync: 0x46,
+  bpmTap: 0x47,
   toggle: 0x58,
   restart: 0x59,
   flash: 0x5A,
@@ -54,10 +48,9 @@ export const CC = {
   positionY: 0x03,
   cueSpeed: 0x04,
   rotationZ: 0x05,
-
+  channel16: 0x08,
   hueShift: 0x09,
   saturation: 0x0A,
-
   animationSpeed: 0x24,
   zoom: 0x25,
   cueShiftBeat: 0x26,
@@ -66,6 +59,20 @@ export const CC = {
   color: 0x29,
   visiblePoints: 0x2A,
   brightness: 0x2B,
+} as const;
+
+export const RGB_CC = {
+  red: 0x00,
+  green: 0x01,
+  blue: 0x02,
+  alpha: 0x03,
+} as const;
+
+export const FX_ACTION_CC = {
+  action1: 0x01,
+  action2: 0x02,
+  action3: 0x03,
+  action4: 0x04,
 } as const;
 
 export const CHANNEL_CC = {
@@ -80,8 +87,6 @@ export const CHANNEL_CC = {
   channel16: { channel: 1, cc: 0x08 },
 } as const;
 
-// FX Grid is MIDI channel 2 (status 0x91), 64 contiguous notes:
-// layer1 0x01-0x10, layer2 0x11-0x20, layer3 0x21-0x30, layer4 0x31-0x40.
 export function fxGridNote(layer: Layer, cell: number): number {
   if (cell < 1 || cell > 16) throw new Error("FX cell must be 1..16");
   return ((layer - 1) * 16) + cell;
