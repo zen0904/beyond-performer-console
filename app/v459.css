@@ -1,0 +1,71 @@
+/* V4.5.9
+   Only adjust the two things the user asked for:
+   1) CC1~CC4 should sit as a left-side grouped block over the left fader area.
+   2) AUX Button Panel should move a bit to the right and each AUX key can be slightly larger.
+   Everything else stays on top of V4.5.7 unchanged.
+*/
+
+/* Give a little more space to AUX, a little less to the CC zone. */
+.row-buttons {
+  grid-template-columns: minmax(0, 23fr) minmax(0, 24fr) minmax(0, 53fr) !important;
+}
+
+/* CC block: don't spread the 4 keys across the whole left area.
+   Keep them as a compact row aligned to the left, like the hardware. */
+.cc-buttons {
+  display: grid !important;
+  grid-template-columns: repeat(4, 58px) !important;
+  justify-content: start !important;
+  justify-items: center !important;
+  align-content: start !important;
+  column-gap: 18px !important;
+  row-gap: 0 !important;
+  padding-left: 2px !important;
+  padding-right: 0 !important;
+}
+
+.cc-buttons .named-key.cc {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  display: grid !important;
+  justify-items: center !important;
+  gap: 4px !important;
+}
+
+.cc-buttons .named-key.cc > .pad {
+  width: 100% !important;
+}
+
+.cc-buttons .named-key.cc > span {
+  width: 100% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* AUX block: slightly bigger buttons and push the whole 2x8 block toward the right. */
+.aux-buttons {
+  grid-template-columns: repeat(8, 22px) !important;
+  grid-template-rows: auto repeat(2, 22px) !important;
+  gap: 7px !important;
+  justify-content: end !important;
+  justify-items: center !important;
+  align-content: start !important;
+  padding-top: 14px !important;
+  padding-right: 4px !important;
+  padding-left: 0 !important;
+}
+
+.aux-buttons > .caption {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  text-align: left !important;
+  margin-bottom: 4px !important;
+}
+
+.aux-buttons > .pad {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+}
