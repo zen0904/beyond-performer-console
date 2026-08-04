@@ -1,0 +1,162 @@
+/* V4.5.7
+   Fix only what user asked:
+   1) AUX Button Panel must be a compact 2x8 block, not spread wide.
+   2) Restore endless encoder LED rings and the bottom light block.
+   3) Keep faders untouched.
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- AUX Button Panel: compact local block ---------- */
+.row-buttons {
+  grid-template-columns: minmax(0, 28fr) minmax(0, 18fr) minmax(0, 54fr) !important;
+}
+
+.aux-buttons {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(8, 20px) !important;
+  grid-template-rows: repeat(2, 20px) !important;
+  gap: 6px !important;
+  justify-content: center !important;
+  align-content: start !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding-top: 16px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 0 !important;
+}
+
+.aux-buttons > .pad {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.aux-buttons > .pad::after {
+  inset: 8% !important;
+  border-radius: 2px !important;
+}
+
+/* keep tool area in its own zone */
+.content-tools {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px 8px !important;
+  min-height: 0 !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+}
+
+.tool-key > .pad {
+  width: 96% !important;
+  min-height: 24px !important;
+  max-height: 34px !important;
+  aspect-ratio: 2.45 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.tool-key > .pad::after {
+  inset: 7% !important;
+  border-radius: 2px !important;
+}
+
+/* ---------- Restore endless encoder LED visuals ---------- */
+.enc-unit {
+  --ring-color: #dbe3db;
+  --ring-glow: rgba(223, 239, 223, .42);
+}
+
+.enc-ring i {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 8% !important;
+  height: 13% !important;
+  border-radius: 3px !important;
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-320%) !important;
+  transform-origin: center !important;
+  background: #424842 !important;
+  border: 1px solid #171a17 !important;
+  opacity: .72 !important;
+}
+
+.enc-ring i.on {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--ring-color), white 35%),
+    0 0 10px var(--ring-glow) !important;
+  opacity: 1 !important;
+}
+
+.enc-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 4% !important;
+  width: 35% !important;
+  height: 13% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 999px !important;
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--ring-color), white 24%),
+    0 0 13px color-mix(in srgb, var(--ring-color), transparent 50%) !important;
+  opacity: .98 !important;
+  z-index: 2 !important;
+}
+
+.enc-cap {
+  width: 61% !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
+}
+
+.aux-encoders > .enc-unit:nth-child(2) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(3) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+.aux-encoders > .enc-unit:nth-child(4) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(5) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+.live-encoders > .enc-unit:nth-child(2) { --ring-color:#d57cff; --ring-glow:rgba(213,124,255,.42); }
+.live-encoders > .enc-unit:nth-child(3) { --ring-color:#5dc7ff; --ring-glow:rgba(93,199,255,.42); }
+.live-encoders > .enc-unit:nth-child(4) { --ring-color:#d8f5ff; --ring-glow:rgba(216,245,255,.42); }
+.live-encoders > .enc-unit:nth-child(5) { --ring-color:#6ff0b1; --ring-glow:rgba(111,240,177,.42); }
+.live-encoders > .enc-unit:nth-child(6) { --ring-color:#ff9d35; --ring-glow:rgba(255,157,53,.44); }
+.live-encoders > .enc-unit:nth-child(7) { --ring-color:#ff6fc2; --ring-glow:rgba(255,111,194,.44); }
+.live-encoders > .enc-unit:nth-child(8) { --ring-color:#f2ddff; --ring-glow:rgba(242,221,255,.42); }
+.live-encoders > .enc-unit:nth-child(9) { --ring-color:#ffb36a; --ring-glow:rgba(255,179,106,.42); }
