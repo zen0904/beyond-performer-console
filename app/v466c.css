@@ -1,0 +1,8 @@
+/* V4.6.6c
+   ONLY vertically align the AUX 2-row block with the 2-row tool buttons on its right.
+   Do not change AUX horizontal position, size, spacing, or anything else.
+*/
+
+.aux-buttons {
+  transform: translateY(-8px) !important;
+}
