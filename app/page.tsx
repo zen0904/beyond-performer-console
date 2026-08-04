@@ -21,11 +21,11 @@ type FeedbackDetail = FeedbackItem | { controls?: FeedbackItem[] };
 function feedbackForId(detail: FeedbackDetail | undefined, id: string): FeedbackItem | undefined {
   if (!detail) return undefined;
 
-  if ("controls" in detail) {
-    return detail.controls?.find((item) => item.id === id);
+  if ("id" in detail) {
+    return detail.id === id ? detail : undefined;
   }
 
-  return detail.id === id ? detail : undefined;
+  return detail.controls?.find((item) => item.id === id);
 }
 
 function Pad({
