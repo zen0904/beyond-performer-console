@@ -7,7 +7,6 @@ import "./v461.css";
 import "./v462.css";
 import "./v463.css";
 import "./v464.css";
-import "./v465.css";
 import "./v466.css";
 
 const basePath = process.env.GITHUB_ACTIONS ? "/beyond-performer-console" : "";
@@ -24,8 +23,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  width: "device-width", initialScale: 1, maximumScale: 1,
-  userScalable: false, viewportFit: "cover", themeColor: "#0b0d0b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#0b0d0b",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

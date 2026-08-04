@@ -1,1 +1,125 @@
-/* V4.6.6 — BEYOND FEEDBACK COLOR AUTHORITY\n   COLOR/LED LOGIC ONLY. No layout/size/position changes.\n\n   When a feedback packet supplies {id,color,active}:\n   - every illuminated PAD uses BEYOND's color\n   - endless encoder ring + bottom lamp use BEYOND's color\n   - each matching Live fader custom light strip uses the encoder's BEYOND color\n   Existing hard-coded colors remain only as a visual fallback until feedback arrives.\n*/\n\n/* ---------- ALL illuminated buttons ---------- */\n.pad.has-beyond-feedback::after {\n  background: color-mix(in srgb, var(--beyond-color), transparent 22%) !important;\n  opacity: .82 !important;\n  box-shadow:\n    inset 0 0 8px rgba(255,255,255,.34),\n    0 0 6px color-mix(in srgb, var(--beyond-color), transparent 55%) !important;\n}\n\n.pad.has-beyond-feedback.beyond-active::after,\n.pad.has-beyond-feedback.is-active::after {\n  background: var(--beyond-color) !important;\n  opacity: 1 !important;\n  box-shadow:\n    0 0 14px var(--beyond-color),\n    0 0 5px rgba(255,255,255,.95),\n    inset 0 0 9px rgba(255,255,255,.72) !important;\n}\n\n.pad.has-beyond-feedback.beyond-active,\n.pad.has-beyond-feedback.is-active {\n  filter: brightness(1.12) !important;\n}\n\n.pad.has-beyond-feedback.beyond-active::before,\n.pad.has-beyond-feedback.is-active::before {\n  border-color: color-mix(in srgb, var(--beyond-color), white 45%) !important;\n  box-shadow: 0 0 11px var(--beyond-color) !important;\n}\n\n/* ---------- Endless encoder feedback ---------- */\n.enc-unit.has-beyond-feedback {\n  --ring-color: var(--beyond-color) !important;\n  --ring-glow: color-mix(in srgb, var(--beyond-color), transparent 55%) !important;\n}\n\n.enc-unit.has-beyond-feedback .enc-ring i.on {\n  background: var(--beyond-color) !important;\n  box-shadow:\n    0 0 4px color-mix(in srgb, var(--beyond-color), white 35%),\n    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;\n}\n\n.enc-unit.has-beyond-feedback .enc-ring::after {\n  background: var(--beyond-color) !important;\n  box-shadow:\n    0 0 6px color-mix(in srgb, var(--beyond-color), white 24%),\n    0 0 13px color-mix(in srgb, var(--beyond-color), transparent 46%) !important;\n}\n\n/* ---------- Added illuminated fader scale ---------- */\n.live-faders .fader-unit.has-beyond-feedback .fader-level-fill {\n  background: var(--beyond-color) !important;\n  box-shadow:\n    0 0 5px var(--beyond-color),\n    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;\n}\n\n/* The encoder/fader pair already receives the same --beyond-color from page.tsx. */\n
+/* V4.6.6a — color feedback fix only.
+   No layout, position, size, fader, AUX, CC, grid, or control behavior changes.
+
+   Fallback colors are used before BEYOND feedback arrives.
+   Once BEYOND feedback is present, --beyond-color becomes the authority.
+*/
+
+/* ---------- FALLBACK per-channel colors ---------- */
+.live-encoders > .enc-unit:nth-child(2),
+.live-faders > .fader-unit:nth-child(1) {
+  --feedback-color: #d57cff;
+  --feedback-glow: rgba(213,124,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(3),
+.live-faders > .fader-unit:nth-child(2) {
+  --feedback-color: #5dc7ff;
+  --feedback-glow: rgba(93,199,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(4),
+.live-faders > .fader-unit:nth-child(3) {
+  --feedback-color: #d8f5ff;
+  --feedback-glow: rgba(216,245,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(5),
+.live-faders > .fader-unit:nth-child(4) {
+  --feedback-color: #6ff0b1;
+  --feedback-glow: rgba(111,240,177,.45);
+}
+.live-encoders > .enc-unit:nth-child(6),
+.live-faders > .fader-unit:nth-child(5) {
+  --feedback-color: #ff9d35;
+  --feedback-glow: rgba(255,157,53,.48);
+}
+.live-encoders > .enc-unit:nth-child(7),
+.live-faders > .fader-unit:nth-child(6) {
+  --feedback-color: #ff6fc2;
+  --feedback-glow: rgba(255,111,194,.48);
+}
+.live-encoders > .enc-unit:nth-child(8),
+.live-faders > .fader-unit:nth-child(7) {
+  --feedback-color: #f2ddff;
+  --feedback-glow: rgba(242,221,255,.46);
+}
+.live-encoders > .enc-unit:nth-child(9),
+.live-faders > .fader-unit:nth-child(8) {
+  --feedback-color: #ffb36a;
+  --feedback-glow: rgba(255,179,106,.48);
+}
+
+/* Encoder ring + bottom lamp fallback */
+.live-encoders .enc-unit {
+  --ring-color: var(--feedback-color) !important;
+  --ring-glow: var(--feedback-glow) !important;
+}
+
+/* Added fader light-strip fallback */
+.live-faders .fader-level-fill {
+  background: var(--feedback-color) !important;
+  box-shadow:
+    0 0 5px var(--feedback-color),
+    0 0 10px var(--feedback-glow) !important;
+}
+
+.live-faders .fader-level > i {
+  background: rgba(240,245,240,.48) !important;
+  box-shadow: 0 0 2px rgba(255,255,255,.28) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: illuminated buttons ---------- */
+.pad.has-beyond-feedback::after {
+  background: color-mix(in srgb, var(--beyond-color), transparent 22%) !important;
+  opacity: .82 !important;
+  box-shadow:
+    inset 0 0 8px rgba(255,255,255,.34),
+    0 0 6px color-mix(in srgb, var(--beyond-color), transparent 55%) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active::after,
+.pad.has-beyond-feedback.is-active::after {
+  background: var(--beyond-color) !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 14px var(--beyond-color),
+    0 0 5px rgba(255,255,255,.95),
+    inset 0 0 9px rgba(255,255,255,.72) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active,
+.pad.has-beyond-feedback.is-active {
+  filter: brightness(1.12) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active::before,
+.pad.has-beyond-feedback.is-active::before {
+  border-color: color-mix(in srgb, var(--beyond-color), white 45%) !important;
+  box-shadow: 0 0 11px var(--beyond-color) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: endless encoders ---------- */
+.enc-unit.has-beyond-feedback {
+  --ring-color: var(--beyond-color) !important;
+  --ring-glow: color-mix(in srgb, var(--beyond-color), transparent 55%) !important;
+}
+
+.enc-unit.has-beyond-feedback .enc-ring i.on {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--beyond-color), white 35%),
+    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;
+}
+
+.enc-unit.has-beyond-feedback .enc-ring::after {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--beyond-color), white 24%),
+    0 0 13px color-mix(in srgb, var(--beyond-color), transparent 46%) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: custom fader light strip ---------- */
+.live-faders .fader-unit.has-beyond-feedback .fader-level-fill {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 5px var(--beyond-color),
+    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;
+}
