@@ -1,16 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import "./globals.css";
-import "./v457.css";
-import "./v460.css";
-import "./v461.css";
-import "./v462.css";
-import "./v463.css";
-import "./v464.css";
-import "./v466.css";
-import "./v466b.css";
-import "./v466c.css";
-import "./v466d.css";
+import "./console.css";
 
 const basePath = process.env.GITHUB_ACTIONS ? "/beyond-performer-console" : "";
 

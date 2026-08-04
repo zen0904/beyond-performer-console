@@ -1,0 +1,897 @@
+/* BEYOND Performer Console — consolidated stylesheet
+   Exact cascade preserved from globals.css + v457..v466d.
+   This file replaces the version-patch import chain.
+*/
+
+
+/* ===== BEGIN globals.css ===== */
+@import "tailwindcss";
+
+:root{
+  --bg:#0b0d0b;
+  --panel:#141713;
+  --line:#343a32;
+  --white:#eeeee7;
+  --touch:#55d8ff;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);overscroll-behavior:none}
+body{font-family:Arial,Helvetica,sans-serif;color:#eee;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+button,.enc-touch,.abs-touch,.fader-touch{touch-action:none;-webkit-touch-callout:none}
+button{appearance:none;-webkit-appearance:none;color:inherit;font:inherit}
+
+.surface{
+  width:100vw;height:100dvh;
+  padding:max(5px,env(safe-area-inset-top)) max(7px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left));
+  display:grid;
+  grid-template-rows:13.5fr 35fr 11fr 10.5fr 10.5fr 19.5fr;
+  gap:5px;
+  background:
+    radial-gradient(circle at 50% -20%,#242923 0,#151814 35%,#0b0d0b 72%),
+    repeating-linear-gradient(25deg,rgba(255,255,255,.014) 0 1px,transparent 1px 4px);
+  overflow:hidden
+}
+.caption{position:absolute;left:0;top:0;font-size:clamp(6px,.58vw,10px);color:#c7cbc5;white-space:nowrap}
+.caption b{margin-left:5px;color:#8fdfff;font-weight:600}
+
+/* ---------- button ---------- */
+.pad{
+  position:relative;
+  border:1px solid #070807;
+  border-radius:3px;
+  background:linear-gradient(#f0f0e9,#a6aaa3);
+  box-shadow:inset 0 0 0 1px #fff9,0 2px 3px #000b;
+  overflow:visible;
+  min-width:0;min-height:0
+}
+/* idle is intentionally neutral/white. BEYOND feedback will own future colors. */
+.pad:after{
+  content:"";position:absolute;inset:7%;border-radius:2px;
+  background:rgba(238,240,233,.72);
+  box-shadow:inset 0 0 7px #fff7
+}
+/* local touch feedback only */
+.pad.is-active:after{
+  background:var(--touch);
+  opacity:1;
+  box-shadow:0 0 13px #55d8ff,0 0 5px #fff,inset 0 0 8px #fff
+}
+.pad.is-active{transform:translateY(1px);filter:brightness(1.15)}
+.pad.is-active:before{
+  content:"";position:absolute;inset:-2px;border:2px solid #eaffff;border-radius:4px;
+  box-shadow:0 0 11px #55d8ff;z-index:3;pointer-events:none
+}
+.pad>span{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(4px,.47vw,8px);color:#111;white-space:nowrap}
+
+/* ---------- top ---------- */
+.top-row{display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);gap:12px;min-height:0}
+.aux-encoders,.master{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5%;align-items:end;padding-top:14px;min-height:0}
+.master{gap:3%}
+.master>.pad{height:73%;align-self:end}
+.master>.pad>span{font-size:clamp(5px,.53vw,9px)}
+
+/* ---------- grids ---------- */
+.grid-row{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:12px;min-height:0}
+.grid-block{position:relative;padding-top:15px;min-height:0;overflow:hidden}
+.grid{height:100%;display:grid;min-height:0}
+.grid2{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:5px}
+.grid1{grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));gap:6px 8px}
+
+/* ---------- lower hardware rows ---------- */
+.controls-row{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:12px;min-height:0;overflow:hidden}
+.row-knobs-layers{grid-template-columns:minmax(0,40fr) minmax(0,30fr) minmax(0,30fr)}
+.fx-channels{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0}
+.subgroup{position:relative;padding-top:14px;min-height:0}
+.subgroup>span{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:clamp(5px,.52vw,9px);white-space:nowrap}
+.four-knobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;height:100%;align-items:center}
+.layers,.bpm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;min-height:0}
+.named-key{display:grid;grid-template-rows:auto 1fr auto;gap:2px;place-items:center;min-width:0;min-height:0}
+.named-key>span,.named-key>small{font-size:clamp(4px,.46vw,8px);white-space:nowrap}
+.named-key>.pad{width:min(60px,72%);aspect-ratio:1}
+
+.row-buttons{grid-template-columns:minmax(0,28fr) minmax(0,42fr) minmax(0,30fr)}
+.cc-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:center;padding:2px 9px;min-height:0}
+.named-key.cc{display:grid;grid-template-rows:1fr auto}
+.named-key.cc>.pad{width:min(64px,80%);height:auto;aspect-ratio:1}
+.aux-buttons{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;align-items:end;padding-top:15px;min-height:0}
+.aux-buttons>.pad{height:58%}
+.content-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:5px 7px;min-height:0}
+.tool-key{display:grid;grid-template-rows:auto 1fr;gap:2px;place-items:stretch;min-height:0}
+.tool-key>span{font-size:clamp(4px,.42vw,7px);text-align:center;white-space:nowrap}
+
+.row-encoder-banks{grid-template-columns:minmax(0,40fr) minmax(0,60fr)}
+.qshift-knobs,.live-encoders{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;padding-top:14px;align-items:center;min-height:0}
+
+/* ---------- flat absolute knobs ---------- */
+.abs-unit,.enc-unit{display:flex;flex-direction:column;align-items:center;min-width:0;min-height:0}
+.abs-touch{position:relative;width:min(43px,70%);aspect-ratio:1;display:grid;place-items:center;border-radius:50%;cursor:ns-resize}
+.abs-scale{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 225deg,#777 0 1deg,transparent 1deg 15deg,#777 15deg 16deg,transparent 16deg 30deg,#777 30deg 31deg,transparent 31deg 45deg,#777 45deg 46deg,transparent 46deg 60deg,#777 60deg 61deg,transparent 61deg 75deg,#777 75deg 76deg,transparent 76deg 90deg,#777 90deg 91deg,transparent 91deg 105deg,#777 105deg 106deg,transparent 106deg 120deg,#777 120deg 121deg,transparent 121deg 135deg,#777 135deg 136deg,transparent 136deg 270deg);-webkit-mask:radial-gradient(circle,transparent 0 67%,#000 69% 73%,transparent 75%);mask:radial-gradient(circle,transparent 0 67%,#000 69% 73%,transparent 75%)}
+.abs-cap{
+  width:65%;aspect-ratio:1;border-radius:50%;
+  background:linear-gradient(#343831 0,#22251f 18%,#151714 80%,#0d0e0c 100%);
+  border:1px solid #080908;
+  box-shadow:inset 0 1px 0 #7775,inset 0 -3px 6px #0008,0 2px 3px #000c;
+  position:relative
+}
+.abs-cap i{position:absolute;left:48%;top:8%;width:4%;height:28%;background:#d9d9d2;border-radius:3px;opacity:.75}
+.abs-unit>span,.enc-unit>span{font-size:clamp(4px,.43vw,7px);white-space:nowrap;margin-top:1px}
+
+/* ---------- endless encoders: NO pointer stripe ---------- */
+.enc-touch{position:relative;width:min(54px,76%);aspect-ratio:1;display:grid;place-items:center;border-radius:50%;cursor:ns-resize}
+.enc-ring{position:absolute;inset:0;border-radius:50%}
+.enc-ring i{
+  position:absolute;left:50%;top:50%;
+  width:7%;height:12%;border-radius:3px;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(-350%);
+  transform-origin:center;
+  background:#3c413a;border:1px solid #151713;opacity:.55
+}
+.enc-ring i.on{background:#9aa59a;box-shadow:0 0 3px #c8d1c8;opacity:.75}
+.enc-unit.touching .enc-ring i.on{background:var(--touch);box-shadow:0 0 6px var(--touch);opacity:1}
+.enc-cap{
+  width:59%;aspect-ratio:1;border-radius:50%;
+  background:linear-gradient(#343831 0,#262923 14%,#171916 80%,#0d0f0d 100%);
+  border:1px solid #070807;
+  box-shadow:inset 0 1px 0 #72776e45,inset 0 -4px 7px #0008,0 2px 4px #000c
+}
+/* intentionally no ::before / ::after / white position mark */
+
+/* ---------- faders ---------- */
+.fader-row{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:12px;min-height:0;overflow:hidden}
+.qshift-faders,.live-faders{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;padding:0 7px;min-height:0}
+.fader-unit{display:flex;flex-direction:column;align-items:center;min-width:0;min-height:0}
+.fader-touch{position:relative;width:62%;height:100%;min-height:0;cursor:ns-resize}
+.rail{position:absolute;top:3%;bottom:5%;left:50%;width:3px;transform:translateX(-50%);background:linear-gradient(90deg,#030403,#70756d 47%,#141613 53%,#030403)}
+.fader-cap{
+  position:absolute;left:50%;width:120%;height:11%;min-height:9px;max-height:17px;
+  transform:translate(-50%,-50%);
+  background:linear-gradient(#565b53,#11130f 45%,#050605 58%,#30342d);
+  border:1px solid #060706;box-shadow:0 2px 4px #000;z-index:3
+}
+.fader-cap i{position:absolute;left:8%;right:8%;top:48%;height:2px;background:#eee}
+.fader-unit>span{font-size:clamp(4px,.41vw,7px);white-space:nowrap;margin-top:1px}
+.mini-meter{position:absolute;left:4%;bottom:15%;width:24%;display:flex;flex-direction:column-reverse;gap:2px}
+.mini-meter i{height:5px;background:#8441db;box-shadow:0 0 3px #8c45e5}
+.rainbow{position:absolute;left:64%;top:10%;bottom:8%;width:16%;background:linear-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.fader-unit.color .rail{left:34%}.fader-unit.color .fader-cap{left:34%;width:85%}
+.fader-unit.led .rail{left:63%}.fader-unit.led .fader-cap{left:63%;width:85%}
+
+.status{position:absolute;right:8px;bottom:4px;font:600 clamp(4px,.38vw,6px) monospace;color:#667067;pointer-events:none}
+
+@media(orientation:portrait){
+  body:before{content:"ROTATE TO LANDSCAPE";position:fixed;z-index:99;inset:0;display:grid;place-items:center;background:#0b0d0b;color:#ddd;font:bold 15px monospace}
+  .surface{visibility:hidden}
+}
+
+/* ===== END globals.css ===== */
+
+/* ===== BEGIN v457.css ===== */
+/* V4.5.7
+   Fix only what user asked:
+   1) AUX Button Panel must be a compact 2x8 block, not spread wide.
+   2) Restore endless encoder LED rings and the bottom light block.
+   3) Keep faders untouched.
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- AUX Button Panel: compact local block ---------- */
+.row-buttons {
+  grid-template-columns: minmax(0, 28fr) minmax(0, 18fr) minmax(0, 54fr) !important;
+}
+
+.aux-buttons {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(8, 20px) !important;
+  grid-template-rows: repeat(2, 20px) !important;
+  gap: 6px !important;
+  justify-content: center !important;
+  align-content: start !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding-top: 16px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 0 !important;
+}
+
+.aux-buttons > .pad {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.aux-buttons > .pad::after {
+  inset: 8% !important;
+  border-radius: 2px !important;
+}
+
+/* keep tool area in its own zone */
+.content-tools {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px 8px !important;
+  min-height: 0 !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+}
+
+.tool-key > .pad {
+  width: 96% !important;
+  min-height: 24px !important;
+  max-height: 34px !important;
+  aspect-ratio: 2.45 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.tool-key > .pad::after {
+  inset: 7% !important;
+  border-radius: 2px !important;
+}
+
+/* ---------- Restore endless encoder LED visuals ---------- */
+.enc-unit {
+  --ring-color: #dbe3db;
+  --ring-glow: rgba(223, 239, 223, .42);
+}
+
+.enc-ring i {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 8% !important;
+  height: 13% !important;
+  border-radius: 3px !important;
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-320%) !important;
+  transform-origin: center !important;
+  background: #424842 !important;
+  border: 1px solid #171a17 !important;
+  opacity: .72 !important;
+}
+
+.enc-ring i.on {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--ring-color), white 35%),
+    0 0 10px var(--ring-glow) !important;
+  opacity: 1 !important;
+}
+
+.enc-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 4% !important;
+  width: 35% !important;
+  height: 13% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 999px !important;
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--ring-color), white 24%),
+    0 0 13px color-mix(in srgb, var(--ring-color), transparent 50%) !important;
+  opacity: .98 !important;
+  z-index: 2 !important;
+}
+
+.enc-cap {
+  width: 61% !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
+}
+
+.aux-encoders > .enc-unit:nth-child(2) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(3) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+.aux-encoders > .enc-unit:nth-child(4) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(5) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+.live-encoders > .enc-unit:nth-child(2) { --ring-color:#d57cff; --ring-glow:rgba(213,124,255,.42); }
+.live-encoders > .enc-unit:nth-child(3) { --ring-color:#5dc7ff; --ring-glow:rgba(93,199,255,.42); }
+.live-encoders > .enc-unit:nth-child(4) { --ring-color:#d8f5ff; --ring-glow:rgba(216,245,255,.42); }
+.live-encoders > .enc-unit:nth-child(5) { --ring-color:#6ff0b1; --ring-glow:rgba(111,240,177,.42); }
+.live-encoders > .enc-unit:nth-child(6) { --ring-color:#ff9d35; --ring-glow:rgba(255,157,53,.44); }
+.live-encoders > .enc-unit:nth-child(7) { --ring-color:#ff6fc2; --ring-glow:rgba(255,111,194,.44); }
+.live-encoders > .enc-unit:nth-child(8) { --ring-color:#f2ddff; --ring-glow:rgba(242,221,255,.42); }
+.live-encoders > .enc-unit:nth-child(9) { --ring-color:#ffb36a; --ring-glow:rgba(255,179,106,.42); }
+
+/* ===== END v457.css ===== */
+
+/* ===== BEGIN v460.css ===== */
+/* V4.6.0
+   ONLY this middle button row is changed.
+   Everything else stays exactly on V4.5.7.
+
+   1) CC1~CC4 spread evenly across the LEFT 40%,
+      matching the left Q-Shift/fader bank.
+   2) AUX Button Panel starts farther right, stays compact 2x8,
+      and each AUX key is slightly larger.
+   3) The 8 buttons to the RIGHT of AUX are smaller.
+*/
+
+/* Match the same 40% left-bank boundary used by the fader row. */
+.row-buttons {
+  grid-template-columns:
+    minmax(0, 40fr)
+    minmax(0, 24fr)
+    minmax(0, 36fr) !important;
+}
+
+/* CC1~CC4: evenly distribute them across the left fader bank. */
+.cc-buttons {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding: 2px 4% !important;
+  min-width: 0 !important;
+}
+
+.cc-buttons .named-key.cc {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  display: grid !important;
+  justify-items: center !important;
+}
+
+.cc-buttons .named-key.cc > .pad {
+  width: min(62px, 58%) !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.cc-buttons .named-key.cc > span {
+  width: 100% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* AUX: compact 2 x 8 block, moved right by the 40% CC boundary.
+   Slightly larger keys than before, but DO NOT stretch them apart. */
+.aux-buttons {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(8, 24px) !important;
+  grid-template-rows: repeat(2, 24px) !important;
+  gap: 7px !important;
+  justify-content: center !important;
+  align-content: start !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding-top: 16px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 0 !important;
+}
+
+.aux-buttons > .pad {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.aux-buttons > .pad::after {
+  inset: 8% !important;
+  border-radius: 2px !important;
+}
+
+/* Right of AUX: same 4 x 2 structure, but physically smaller buttons. */
+.content-tools {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px 8px !important;
+  padding: 0 4px !important;
+  align-items: center !important;
+  justify-items: center !important;
+  min-height: 0 !important;
+}
+
+.tool-key {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+  min-height: 0 !important;
+}
+
+.tool-key > .pad {
+  width: 66% !important;
+  min-height: 20px !important;
+  max-height: 27px !important;
+  aspect-ratio: 2.15 / 1 !important;
+  justify-self: center !important;
+  border-radius: 3px !important;
+}
+
+.tool-key > .pad::after {
+  inset: 7% !important;
+  border-radius: 2px !important;
+}
+
+.tool-key > span {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* ===== END v460.css ===== */
+
+/* ===== BEGIN v461.css ===== */
+/* V4.6.1
+   ONLY enlarge AUX Button Panel buttons very slightly.
+   Position, spacing zones, CC1~CC4, right-side tools, encoders, faders, grids: untouched.
+*/
+
+.aux-buttons {
+  grid-template-columns: repeat(8, 26px) !important;
+  grid-template-rows: repeat(2, 26px) !important;
+}
+
+.aux-buttons > .pad {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+}
+
+/* ===== END v461.css ===== */
+
+/* ===== BEGIN v462.css ===== */
+/* V4.6.2 — only AUX buttons: 26px -> 28px */
+.aux-buttons {
+  grid-template-columns: repeat(8, 28px) !important;
+  grid-template-rows: repeat(2, 28px) !important;
+}
+.aux-buttons > .pad {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+}
+/* ===== END v462.css ===== */
+
+/* ===== BEGIN v463.css ===== */
+/* V4.6.3 — ONLY AUX Button Panel: 28px -> 30px */
+.aux-buttons {
+  grid-template-columns: repeat(8, 30px) !important;
+  grid-template-rows: repeat(2, 30px) !important;
+}
+.aux-buttons > .pad {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+}
+/* ===== END v463.css ===== */
+
+/* ===== BEGIN v464.css ===== */
+/* V4.6.4
+   ONLY:
+   1) AUX Button Panel 30px -> 32px
+   2) add a slim illuminated level/scale strip beside every fader
+   No layout/position changes elsewhere.
+*/
+
+.aux-buttons {
+  grid-template-columns: repeat(8, 32px) !important;
+  grid-template-rows: repeat(2, 32px) !important;
+}
+.aux-buttons > .pad {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+}
+
+/* Slim illuminated "scale sticker" beside the rail.
+   Absolute overlay: does not consume layout space or move the fader. */
+.fader-level {
+  position: absolute;
+  top: 4%;
+  bottom: 6%;
+  right: -22%;
+  width: 13%;
+  min-width: 5px;
+  max-width: 9px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #111511, #080a08);
+  border: 1px solid rgba(190,210,190,.18);
+  box-shadow:
+    inset 0 0 3px rgba(255,255,255,.08),
+    0 0 4px rgba(0,0,0,.7);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Dynamic fill follows actual fader value. */
+.fader-level-fill {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    #fff07b 0%,
+    #8cff78 24%,
+    #52e9c2 48%,
+    #54b7ff 70%,
+    #9d70ff 86%,
+    #ff6fc3 100%
+  );
+  box-shadow:
+    0 0 5px rgba(105,215,255,.72),
+    0 0 9px rgba(105,215,255,.35);
+  opacity: .95;
+}
+
+/* 0–100 tick marks, like a printed scale but luminous. */
+.fader-level > i {
+  position: absolute;
+  left: 18%;
+  width: 64%;
+  height: 1px;
+  background: rgba(238,245,238,.46);
+  box-shadow: 0 0 2px rgba(255,255,255,.32);
+  transform: translateY(50%);
+  z-index: 2;
+}
+
+/* Avoid collision with the special built-in visual bars. */
+.fader-unit.color .fader-level {
+  right: -9%;
+}
+.fader-unit.led .fader-level {
+  right: -8%;
+}
+
+/* ===== END v464.css ===== */
+
+/* ===== BEGIN v466.css ===== */
+/* V4.6.6a — color feedback fix only.
+   No layout, position, size, fader, AUX, CC, grid, or control behavior changes.
+
+   Fallback colors are used before BEYOND feedback arrives.
+   Once BEYOND feedback is present, --beyond-color becomes the authority.
+*/
+
+/* ---------- FALLBACK per-channel colors ---------- */
+.live-encoders > .enc-unit:nth-child(2),
+.live-faders > .fader-unit:nth-child(1) {
+  --feedback-color: #d57cff;
+  --feedback-glow: rgba(213,124,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(3),
+.live-faders > .fader-unit:nth-child(2) {
+  --feedback-color: #5dc7ff;
+  --feedback-glow: rgba(93,199,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(4),
+.live-faders > .fader-unit:nth-child(3) {
+  --feedback-color: #d8f5ff;
+  --feedback-glow: rgba(216,245,255,.45);
+}
+.live-encoders > .enc-unit:nth-child(5),
+.live-faders > .fader-unit:nth-child(4) {
+  --feedback-color: #6ff0b1;
+  --feedback-glow: rgba(111,240,177,.45);
+}
+.live-encoders > .enc-unit:nth-child(6),
+.live-faders > .fader-unit:nth-child(5) {
+  --feedback-color: #ff9d35;
+  --feedback-glow: rgba(255,157,53,.48);
+}
+.live-encoders > .enc-unit:nth-child(7),
+.live-faders > .fader-unit:nth-child(6) {
+  --feedback-color: #ff6fc2;
+  --feedback-glow: rgba(255,111,194,.48);
+}
+.live-encoders > .enc-unit:nth-child(8),
+.live-faders > .fader-unit:nth-child(7) {
+  --feedback-color: #f2ddff;
+  --feedback-glow: rgba(242,221,255,.46);
+}
+.live-encoders > .enc-unit:nth-child(9),
+.live-faders > .fader-unit:nth-child(8) {
+  --feedback-color: #ffb36a;
+  --feedback-glow: rgba(255,179,106,.48);
+}
+
+/* Encoder ring + bottom lamp fallback */
+.live-encoders .enc-unit {
+  --ring-color: var(--feedback-color) !important;
+  --ring-glow: var(--feedback-glow) !important;
+}
+
+/* Added fader light-strip fallback */
+.live-faders .fader-level-fill {
+  background: var(--feedback-color) !important;
+  box-shadow:
+    0 0 5px var(--feedback-color),
+    0 0 10px var(--feedback-glow) !important;
+}
+
+.live-faders .fader-level > i {
+  background: rgba(240,245,240,.48) !important;
+  box-shadow: 0 0 2px rgba(255,255,255,.28) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: illuminated buttons ---------- */
+.pad.has-beyond-feedback::after {
+  background: color-mix(in srgb, var(--beyond-color), transparent 22%) !important;
+  opacity: .82 !important;
+  box-shadow:
+    inset 0 0 8px rgba(255,255,255,.34),
+    0 0 6px color-mix(in srgb, var(--beyond-color), transparent 55%) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active::after,
+.pad.has-beyond-feedback.is-active::after {
+  background: var(--beyond-color) !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 14px var(--beyond-color),
+    0 0 5px rgba(255,255,255,.95),
+    inset 0 0 9px rgba(255,255,255,.72) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active,
+.pad.has-beyond-feedback.is-active {
+  filter: brightness(1.12) !important;
+}
+
+.pad.has-beyond-feedback.beyond-active::before,
+.pad.has-beyond-feedback.is-active::before {
+  border-color: color-mix(in srgb, var(--beyond-color), white 45%) !important;
+  box-shadow: 0 0 11px var(--beyond-color) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: endless encoders ---------- */
+.enc-unit.has-beyond-feedback {
+  --ring-color: var(--beyond-color) !important;
+  --ring-glow: color-mix(in srgb, var(--beyond-color), transparent 55%) !important;
+}
+
+.enc-unit.has-beyond-feedback .enc-ring i.on {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--beyond-color), white 35%),
+    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;
+}
+
+.enc-unit.has-beyond-feedback .enc-ring::after {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--beyond-color), white 24%),
+    0 0 13px color-mix(in srgb, var(--beyond-color), transparent 46%) !important;
+}
+
+/* ---------- BEYOND FEEDBACK: custom fader light strip ---------- */
+.live-faders .fader-unit.has-beyond-feedback .fader-level-fill {
+  background: var(--beyond-color) !important;
+  box-shadow:
+    0 0 5px var(--beyond-color),
+    0 0 10px color-mix(in srgb, var(--beyond-color), transparent 48%) !important;
+}
+
+/* ===== END v466.css ===== */
+
+/* ===== BEGIN v466b.css ===== */
+/* V4.6.6b
+   ONLY fix clipping/covering of the AUX Button Panel.
+   Do NOT move, resize, or re-space any controls.
+*/
+
+/* The row itself was clipping the lower AUX buttons after they were enlarged.
+   Keep every control at the exact same coordinates, just allow it to render outside
+   the row's clipping box. */
+.row-buttons {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+.aux-buttons {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 4 !important;
+}
+
+/* Keep the following row behind it so it doesn't visually cover the AUX buttons. */
+.row-encoder-banks {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* ===== END v466b.css ===== */
+
+/* ===== BEGIN v466c.css ===== */
+/* V4.6.6c
+   ONLY vertically align the AUX 2-row block with the 2-row tool buttons on its right.
+   Do not change AUX horizontal position, size, spacing, or anything else.
+*/
+
+.aux-buttons {
+  transform: translateY(-8px) !important;
+}
+
+/* ===== END v466c.css ===== */
+
+/* ===== BEGIN v466d.css ===== */
+/* V4.6.7 — ORIGINAL CONSOLE VISUAL MATCH
+   Visual refinement only.
+   Keep control IDs, functions, feedback logic, AUX position (-4px), fader behavior,
+   button behavior and all MIDI/BEYOND logic untouched.
+
+   Goals:
+   - typography closer to the physical Performer Console
+   - slightly larger knob/encoder visual scale
+   - denser, more hardware-like labeling
+   - no structural re-layout
+*/
+
+/* Keep the approved AUX vertical alignment exactly as before. */
+.aux-buttons {
+  transform: translateY(-4px) !important;
+}
+
+/* ---------- Typography: closer to the physical printed legends ---------- */
+.caption {
+  font-size: clamp(7px, .67vw, 11px) !important;
+  line-height: 1.05 !important;
+  letter-spacing: .01em !important;
+}
+
+.caption b {
+  font-size: 1em !important;
+  font-weight: 600 !important;
+}
+
+.subgroup > span {
+  font-size: clamp(6px, .61vw, 10px) !important;
+  line-height: 1 !important;
+}
+
+.named-key > span,
+.named-key > small {
+  font-size: clamp(5px, .54vw, 9px) !important;
+  line-height: 1 !important;
+}
+
+.tool-key > span {
+  font-size: clamp(5px, .50vw, 8px) !important;
+  line-height: 1 !important;
+}
+
+.abs-unit > span,
+.enc-unit > span {
+  font-size: clamp(5px, .51vw, 8.5px) !important;
+  line-height: 1 !important;
+  margin-top: 2px !important;
+}
+
+.fader-unit > span {
+  font-size: clamp(5px, .49vw, 8px) !important;
+  line-height: 1 !important;
+  margin-top: 2px !important;
+}
+
+.master > .pad > span {
+  font-size: clamp(6px, .58vw, 10px) !important;
+}
+
+/* AUX button numbers are printed a little clearer on the real unit. */
+.aux-buttons > .pad > span {
+  font-size: clamp(5px, .49vw, 8px) !important;
+}
+
+/* ---------- Knob / encoder visual scale: one small step toward hardware ---------- */
+.abs-touch {
+  width: min(46px, 74%) !important;
+}
+
+.enc-touch {
+  width: min(59px, 81%) !important;
+}
+
+/* Slightly fuller caps, matching the photographed hardware proportions. */
+.abs-cap {
+  width: 67% !important;
+}
+
+.enc-cap {
+  width: 62% !important;
+}
+
+/* Keep ring geometry intact but make the LED segments a touch more substantial. */
+.enc-ring i {
+  width: 8% !important;
+  height: 13% !important;
+}
+
+/* ---------- Hardware-like density without changing section coordinates ---------- */
+.four-knobs {
+  gap: 4px !important;
+}
+
+.layers,
+.bpm {
+  gap: 7px !important;
+}
+
+.cc-buttons {
+  gap: 10px !important;
+}
+
+.content-tools {
+  gap: 4px 6px !important;
+}
+
+.qshift-knobs,
+.live-encoders {
+  gap: 4px !important;
+}
+
+.qshift-faders,
+.live-faders {
+  gap: 7px !important;
+}
+
+/* Slightly stronger printed-label contrast, like the white silkscreen on hardware. */
+.caption,
+.subgroup > span,
+.named-key > span,
+.named-key > small,
+.tool-key > span,
+.abs-unit > span,
+.enc-unit > span,
+.fader-unit > span {
+  color: #d9ddd7 !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.75) !important;
+}
+
+.caption b {
+  color: #9cddff !important;
+}
+
+/* ===== END v466d.css ===== */
