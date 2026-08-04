@@ -10,6 +10,7 @@ import "./v464.css";
 import "./v466.css";
 import "./v466b.css";
 import "./v466c.css";
+import "./v466d.css";
 
 const basePath = process.env.GITHUB_ACTIONS ? "/beyond-performer-console" : "";
 

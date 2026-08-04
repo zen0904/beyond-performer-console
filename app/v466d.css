@@ -1,0 +1,7 @@
+/* V4.6.6d
+   Only correct AUX vertical position from -8px to -4px.
+   Nothing else changes.
+*/
+.aux-buttons {
+  transform: translateY(-4px) !important;
+}
