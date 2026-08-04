@@ -1,0 +1,154 @@
+/* V4.5.2
+   Only refine:
+   1) endless encoder rings: add the missing bottom lamp/base
+   2) right-side small buttons above the lower endless encoders / faders:
+      make them smaller and more square-ish like the real console
+   3) keep faders unchanged
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------------- Encoder LED language ---------------- */
+.enc-unit {
+  --ring-color: #dbe3db;
+  --ring-glow: rgba(223, 239, 223, .42);
+}
+
+.enc-ring i {
+  background: #424842 !important;
+  border-color: #171a17 !important;
+  opacity: .70 !important;
+}
+
+.enc-ring i.on {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--ring-color), white 35%),
+    0 0 9px var(--ring-glow) !important;
+  opacity: 1 !important;
+}
+
+/* Add the missing bottom lamp / base segment, like the real console */
+.enc-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 2.5% !important;
+  width: 34% !important;
+  height: 12% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 999px !important;
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--ring-color), white 22%),
+    0 0 12px color-mix(in srgb, var(--ring-color), transparent 52%) !important;
+  opacity: .92 !important;
+  z-index: 1 !important;
+}
+
+.enc-unit.touching .enc-ring i.on,
+.enc-unit.touching .enc-ring::after {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 5px color-mix(in srgb, var(--ring-color), white 45%),
+    0 0 13px color-mix(in srgb, var(--ring-color), transparent 45%) !important;
+  opacity: 1 !important;
+}
+
+/* Top AUX encoders: red / green / red / green */
+.aux-encoders > .enc-unit:nth-child(2) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(3) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+.aux-encoders > .enc-unit:nth-child(4) { --ring-color:#ff6b55; --ring-glow:rgba(255,107,85,.42); }
+.aux-encoders > .enc-unit:nth-child(5) { --ring-color:#71f0a2; --ring-glow:rgba(113,240,162,.40); }
+
+/* Live-control encoder colors */
+.live-encoders > .enc-unit:nth-child(2) { --ring-color:#d57cff; --ring-glow:rgba(213,124,255,.42); }
+.live-encoders > .enc-unit:nth-child(3) { --ring-color:#5dc7ff; --ring-glow:rgba(93,199,255,.42); }
+.live-encoders > .enc-unit:nth-child(4) { --ring-color:#d8f5ff; --ring-glow:rgba(216,245,255,.42); }
+.live-encoders > .enc-unit:nth-child(5) { --ring-color:#6ff0b1; --ring-glow:rgba(111,240,177,.42); }
+.live-encoders > .enc-unit:nth-child(6) { --ring-color:#ff9d35; --ring-glow:rgba(255,157,53,.44); }
+.live-encoders > .enc-unit:nth-child(7) { --ring-color:#ff6fc2; --ring-glow:rgba(255,111,194,.44); }
+.live-encoders > .enc-unit:nth-child(8) { --ring-color:#f2ddff; --ring-glow:rgba(242,221,255,.42); }
+.live-encoders > .enc-unit:nth-child(9) { --ring-color:#ffb36a; --ring-glow:rgba(255,179,106,.42); }
+
+/* ---------------- Right-side small-button area ---------------- */
+/* Keep the 8 AUX buttons compact and square */
+.aux-buttons {
+  grid-template-columns: repeat(8, minmax(0,1fr)) !important;
+  gap: 6px !important;
+  padding: 15px 2px 2px !important;
+  align-items: center !important;
+}
+
+.aux-buttons > .pad {
+  width: 56% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+}
+
+/* The two rows above the right-side encoder/fader section should feel
+   like smaller, more compact physical keys — not long bars. */
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0,1fr)) !important;
+  gap: 6px 6px !important;
+  padding: 0 !important;
+  align-items: center !important;
+  justify-items: center !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(0,1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+  min-height: 0 !important;
+}
+
+.tool-key > span {
+  font-size: clamp(4px,.40vw,6.7px) !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.tool-key > .pad {
+  width: 72% !important;
+  aspect-ratio: 1.9 / 1 !important;
+  min-height: 20px !important;
+  max-height: 29px !important;
+  justify-self: center !important;
+}
+
+/* Slightly rebalance the whole middle row so the tool area doesn't stretch weirdly */
+.row-buttons {
+  grid-template-columns: minmax(0,28fr) minmax(0,34fr) minmax(0,38fr) !important;
+}
+
+/* Faders intentionally untouched in this patch */
