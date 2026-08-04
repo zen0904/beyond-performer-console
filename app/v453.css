@@ -1,0 +1,103 @@
+/* V4.5.3
+   Only refine the button area the user pointed out:
+   1) AUX Button Panel remains small square buttons
+   2) Toggle / Restart / Flash / Page Up
+      One Cue / Multi Cue / Groups / Page Down
+      become longer physical-style rectangular buttons like the real console
+   3) keep encoder LEDs and faders untouched
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* --- keep AUX button panel compact and square, closer to original --- */
+.aux-buttons {
+  grid-template-columns: repeat(8, minmax(0,1fr)) !important;
+  gap: 7px !important;
+  padding: 13px 2px 1px !important;
+  align-items: center !important;
+}
+
+.aux-buttons > .pad {
+  width: 56% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+}
+
+/* --- restore the right-side tool buttons to the original wide-button look --- */
+.row-buttons {
+  grid-template-columns: minmax(0,28fr) minmax(0,34fr) minmax(0,38fr) !important;
+}
+
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0,1fr)) !important;
+  gap: 8px 10px !important;
+  padding: 0 0 2px !important;
+  align-items: center !important;
+  justify-items: center !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(0,1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+  min-height: 0 !important;
+}
+
+.tool-key > span {
+  font-size: clamp(4px,.40vw,6.8px) !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.tool-key > .pad {
+  width: 96% !important;
+  min-height: 24px !important;
+  max-height: 34px !important;
+  aspect-ratio: 2.55 / 1 !important;
+  justify-self: center !important;
+  border-radius: 3px !important;
+}
+
+.tool-key > .pad::after {
+  inset: 7% !important;
+  border-radius: 2px !important;
+}
+
+/* Slight optical alignment to mimic the factory layout */
+.content-tools .tool-key:nth-child(-n+4) > .pad {
+  width: 94% !important;
+}
+.content-tools .tool-key:nth-child(n+5) > .pad {
+  width: 98% !important;
+}
+
+/* keep everything else from globals.css untouched */
