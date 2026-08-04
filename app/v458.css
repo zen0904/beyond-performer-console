@@ -1,0 +1,58 @@
+/* V4.5.8
+   ONLY adjust the area to the RIGHT of AUX Button Panel.
+   Goal:
+   - give AUX panel more room and let it sit more naturally toward center
+   - make Toggle/Restart/Flash/Page Up + One Cue/Multi Cue/Groups/Page Down smaller
+   - preserve every other part of V4.5.7 exactly
+*/
+
+/* Reallocate this row:
+   before: CC 28 / AUX 18 / right tools 54
+   now:    CC 28 / AUX 32 / right tools 40
+*/
+.row-buttons {
+  grid-template-columns:
+    minmax(0, 28fr)
+    minmax(0, 32fr)
+    minmax(0, 40fr) !important;
+}
+
+/* AUX itself remains the same 2x8 compact block from V4.5.7.
+   Only center it inside the newly larger middle zone. */
+.aux-buttons {
+  justify-content: center !important;
+}
+
+/* Right-side tool bank: keep 4 x 2 arrangement,
+   but shrink each physical button so it no longer consumes the whole zone. */
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 8px !important;
+  row-gap: 6px !important;
+  padding: 0 5px !important;
+  align-items: center !important;
+  justify-items: center !important;
+}
+
+.tool-key {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+}
+
+.tool-key > .pad {
+  width: 72% !important;
+  min-height: 20px !important;
+  max-height: 27px !important;
+  aspect-ratio: 2.15 / 1 !important;
+  justify-self: center !important;
+}
+
+/* Labels stay centered above their own button. */
+.tool-key > span {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
