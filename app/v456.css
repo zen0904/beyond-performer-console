@@ -1,0 +1,98 @@
+/* V4.5.6
+   User correction:
+   - AUX Button Panel should look like the original hardware
+   - many small buttons, tighter spacing, not spread out
+   - 2 rows x 8 = 16 AUX buttons
+   - do not disturb the current faders/encoder tuning
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* AUX button zone: tighter and denser like the real console */
+.row-buttons {
+  grid-template-columns: minmax(0, 26fr) minmax(0, 32fr) minmax(0, 42fr) !important;
+}
+
+.aux-buttons {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 4px 5px !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding-top: 14px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 0 !important;
+}
+
+.aux-buttons > .pad {
+  width: 50% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  min-width: 18px !important;
+  max-width: 28px !important;
+  justify-self: center !important;
+}
+
+.aux-buttons > .pad::after {
+  inset: 7% !important;
+}
+
+/* keep right-side tool buttons from being pushed too far */
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px 10px !important;
+  align-items: center !important;
+  justify-items: center !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 3px !important;
+  place-items: center !important;
+}
+
+.tool-key > .pad {
+  width: 96% !important;
+  min-height: 24px !important;
+  max-height: 34px !important;
+  aspect-ratio: 2.55 / 1 !important;
+  border-radius: 3px !important;
+}
+
+.tool-key > .pad::after {
+  inset: 7% !important;
+  border-radius: 2px !important;
+}
+
+/* leave encoder/fader look alone in this patch */

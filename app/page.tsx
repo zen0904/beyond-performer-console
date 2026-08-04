@@ -417,7 +417,7 @@ export default function Home() {
 
         <div className="aux-buttons">
           <div className="caption">AUX Button Panel</div>
-          {Array.from({ length: 8 }, (_, i) => (
+          {Array.from({ length: 16 }, (_, i) => (
             <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>
           ))}
         </div>
