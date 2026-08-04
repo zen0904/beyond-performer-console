@@ -1,6 +1,6 @@
 "use client";
 
-import React, { PointerEvent, useCallback, useRef, useState } from "react";
+import React, { PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type EventSink = (type: string, id: string, value: number, pointerId: number) => void;
 type Layer = 1 | 2 | 3 | 4;
@@ -55,6 +55,7 @@ function Pad({
   return (
     <button
       type="button"
+      data-control-id={id}
       className={`pad ${isActive ? "is-active" : ""}`}
       onPointerDown={down}
       onPointerUp={(e) => up(e)}
@@ -199,7 +200,7 @@ function EndlessEncoder({
   const activeLed = Math.round((value / 127) * (LED_COUNT - 1));
 
   return (
-    <div className={`enc-unit ${touching ? "touching" : ""}`}>
+    <div className={`enc-unit ${touching ? "touching" : ""}`} data-control-id={id}>
       <div
         className="enc-touch"
         onPointerDown={down}
@@ -290,7 +291,7 @@ function VerticalFader({
   const pct = (value / 127) * 100;
 
   return (
-    <div className={`fader-unit ${variant}`}>
+    <div className={`fader-unit ${variant}`} data-control-id={id}>
       <div
         className="fader-touch"
         onPointerDown={down}
@@ -324,6 +325,73 @@ export default function Home() {
   const [layer, setLayer] = useState<Layer>(1);
   const activePointers = useRef<Map<number, string>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
+
+  // BEYOND is the color/state authority.
+  // A local bridge can dispatch:
+  // window.dispatchEvent(new CustomEvent("beyond-feedback", {
+  //   detail: { id: "G1-1", color: "#36d9ff", active: true }
+  // }));
+  // Batch form is also accepted: { controls: [{ id, color, active }, ...] }.
+  useEffect(() => {
+    const faderPair: Record<string, string> = {
+      "LIVE-E1": "ANIM",
+      "LIVE-E2": "SIZE",
+      "LIVE-E3": "CUESFT",
+      "LIVE-E4": "EFSFT",
+      "LIVE-E5": "BRUSH",
+      "LIVE-E6": "COLOR",
+      "LIVE-E7": "POINTS",
+      "LIVE-E8": "BRIGHT",
+    };
+
+    type FeedbackItem = { id?: string; color?: string; active?: boolean };
+
+    const applyOne = (item: FeedbackItem) => {
+      if (!item?.id) return;
+      const escaped = CSS.escape(item.id);
+      const nodes = document.querySelectorAll<HTMLElement>(`[data-control-id="${escaped}"]`);
+
+      nodes.forEach((node) => {
+        if (item.color) {
+          node.style.setProperty("--beyond-color", item.color);
+          node.style.setProperty("--ring-color", item.color);
+          node.style.setProperty("--feedback-color", item.color);
+          node.classList.add("has-beyond-feedback");
+        }
+        if (typeof item.active === "boolean") {
+          node.classList.toggle("beyond-active", item.active);
+        }
+      });
+
+      // Live encoder color also owns the matching fader light-strip color.
+      const pairedFader = faderPair[item.id];
+      if (pairedFader && item.color) {
+        document
+          .querySelectorAll<HTMLElement>(`[data-control-id="${CSS.escape(pairedFader)}"]`)
+          .forEach((node) => {
+            node.style.setProperty("--beyond-color", item.color!);
+            node.style.setProperty("--feedback-color", item.color!);
+            node.classList.add("has-beyond-feedback");
+          });
+      }
+    };
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail as
+        | FeedbackItem
+        | { controls?: FeedbackItem[] }
+        | undefined;
+      if (!detail) return;
+      if ("controls" in detail && Array.isArray(detail.controls)) {
+        detail.controls.forEach(applyOne);
+      } else {
+        applyOne(detail as FeedbackItem);
+      }
+    };
+
+    window.addEventListener("beyond-feedback", handler as EventListener);
+    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
+  }, []);
 
   const onEvent = useCallback<EventSink>((type, id, _value, pointerId) => {
     if (type === "controlDown") activePointers.current.set(pointerId, id);
