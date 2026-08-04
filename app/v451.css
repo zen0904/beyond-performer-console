@@ -1,0 +1,196 @@
+/* V4.5.1
+   ONLY these changes:
+   1) endless encoder LED rings stay visibly on
+   2) top AUX encoder rings use persistent red/green display
+   3) lower-right button banks are compact and closer to the physical console
+   4) iPad Safari selection/callout suppression
+   FADERS ARE NOT MODIFIED HERE.
+*/
+
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Endless encoders: always-lit neutral arc, colored per section */
+.enc-unit {
+  --ring-color: #dbe3db;
+  --ring-glow: rgba(223, 239, 223, .42);
+}
+
+.enc-ring i {
+  background: #424842 !important;
+  border-color: #171a17 !important;
+  opacity: .70 !important;
+}
+
+.enc-ring i.on {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--ring-color), white 35%),
+    0 0 9px var(--ring-glow) !important;
+  opacity: 1 !important;
+}
+
+.enc-unit.touching .enc-ring i.on {
+  background: var(--ring-color) !important;
+  box-shadow:
+    0 0 5px color-mix(in srgb, var(--ring-color), white 45%),
+    0 0 12px color-mix(in srgb, var(--ring-color), transparent 45%) !important;
+  opacity: 1 !important;
+}
+
+/* Top AUX Encoders: red / green / red / green */
+.aux-encoders > .enc-unit:nth-child(2) {
+  --ring-color:#ff6b55;
+  --ring-glow:rgba(255,107,85,.42);
+}
+.aux-encoders > .enc-unit:nth-child(3) {
+  --ring-color:#71f0a2;
+  --ring-glow:rgba(113,240,162,.40);
+}
+.aux-encoders > .enc-unit:nth-child(4) {
+  --ring-color:#ff6b55;
+  --ring-glow:rgba(255,107,85,.42);
+}
+.aux-encoders > .enc-unit:nth-child(5) {
+  --ring-color:#71f0a2;
+  --ring-glow:rgba(113,240,162,.40);
+}
+
+/* Live-control encoder colors */
+.live-encoders > .enc-unit:nth-child(2) {
+  --ring-color:#d57cff;
+  --ring-glow:rgba(213,124,255,.42);
+}
+.live-encoders > .enc-unit:nth-child(3) {
+  --ring-color:#5dc7ff;
+  --ring-glow:rgba(93,199,255,.42);
+}
+.live-encoders > .enc-unit:nth-child(4) {
+  --ring-color:#d8f5ff;
+  --ring-glow:rgba(216,245,255,.42);
+}
+.live-encoders > .enc-unit:nth-child(5) {
+  --ring-color:#6ff0b1;
+  --ring-glow:rgba(111,240,177,.42);
+}
+.live-encoders > .enc-unit:nth-child(6) {
+  --ring-color:#ff9d35;
+  --ring-glow:rgba(255,157,53,.44);
+}
+.live-encoders > .enc-unit:nth-child(7) {
+  --ring-color:#ff6fc2;
+  --ring-glow:rgba(255,111,194,.44);
+}
+.live-encoders > .enc-unit:nth-child(8) {
+  --ring-color:#f2ddff;
+  --ring-glow:rgba(242,221,255,.42);
+}
+.live-encoders > .enc-unit:nth-child(9) {
+  --ring-color:#ffb36a;
+  --ring-glow:rgba(255,179,106,.42);
+}
+
+/* Right-side hardware button groups */
+.layers,
+.bpm {
+  gap: 10px !important;
+  padding: 0 6px !important;
+  align-items: center !important;
+}
+
+.named-key {
+  grid-template-rows: auto minmax(0,1fr) auto !important;
+  gap: 2px !important;
+}
+
+.named-key > .pad {
+  width: min(58px, 68%) !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+  align-self: center !important;
+}
+
+.row-buttons {
+  grid-template-columns: minmax(0,28fr) minmax(0,34fr) minmax(0,38fr) !important;
+}
+
+.cc-buttons {
+  gap: 12px !important;
+  padding: 3px 10px !important;
+}
+
+.named-key.cc > .pad {
+  width: min(58px, 72%) !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+/* AUX Button Panel: 8 small square buttons */
+.aux-buttons {
+  grid-template-columns: repeat(8, minmax(0,1fr)) !important;
+  gap: 7px !important;
+  padding: 15px 4px 2px !important;
+  align-items: center !important;
+}
+
+.aux-buttons > .pad {
+  width: 64% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+}
+
+/* Toggle/Restart/Flash/Page Up + One Cue/Multi Cue/Groups/Page Down */
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0,1fr)) !important;
+  gap: 7px 8px !important;
+  padding: 1px 0 !important;
+  align-items: center !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(24px, 1fr) !important;
+  gap: 3px !important;
+  place-items: center stretch !important;
+  min-height: 0 !important;
+}
+
+.tool-key > span {
+  font-size: clamp(4px,.41vw,7px) !important;
+}
+
+.tool-key > .pad {
+  width: 92% !important;
+  min-height: 24px !important;
+  max-height: 34px !important;
+  justify-self: center !important;
+}
+
+/* No .rail / .fader-cap overrides in this file.
+   Faders remain exactly as defined by globals.css (previous model). */
