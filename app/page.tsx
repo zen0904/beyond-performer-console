@@ -428,7 +428,7 @@ export default function Home() {
       <section className="top-row">
         <div className="aux-encoders">
           <div className="caption">
-            AUX Encoders: <b>{AUX_ENCODER_LEGEND[layer]}</b>
+            AUX Encoders: <b style={{ fontSize: "1.12em" }}>{AUX_ENCODER_LEGEND[layer]}</b>
           </div>
           {[1,2,3,4].map((n) => (
             <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>
@@ -446,7 +446,7 @@ export default function Home() {
       <section className="grid-row">
         <div className="grid-block">
           <div className="caption">
-            Grid 2: <b>{GRID2_LEGEND[layer]}</b>
+            Grid 2: <b style={{ fontSize: "1.12em" }}>{GRID2_LEGEND[layer]}</b>
           </div>
           <div className="grid grid2">
             {Array.from({ length: 64 }, (_, i) => (
@@ -457,7 +457,7 @@ export default function Home() {
 
         <div className="grid-block">
           <div className="caption">
-            Grid 1: <b>{GRID1_LEGEND[layer]}</b>
+            Grid 1: <b style={{ fontSize: "1.12em" }}>{GRID1_LEGEND[layer]}</b>
           </div>
           <div className="grid grid1">
             {Array.from({ length: 48 }, (_, i) => (
@@ -514,7 +514,7 @@ export default function Home() {
 
         <div className="aux-buttons">
           <div className="caption">
-            AUX Button Panel: <b>{AUX_BUTTON_LEGEND[layer]}</b>
+            AUX Button Panel: <b style={{ fontSize: "1.12em" }}>{AUX_BUTTON_LEGEND[layer]}</b>
           </div>
           {Array.from({ length: 16 }, (_, i) => (
             <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>
