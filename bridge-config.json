@@ -1,0 +1,45 @@
+{
+  "host": "0.0.0.0",
+  "port": 8765,
+  "midi_input": "BPC-OUT",
+  "midi_output": "BPC-IN",
+  "note_feedback": {
+    "fx_grid": {
+      "channel": 2,
+      "layers": {
+        "1": {
+          "start": 1,
+          "end": 16,
+          "empty": 0,
+          "used": 22,
+          "focused": 24,
+          "playing": 127
+        },
+        "2": {
+          "start": 17,
+          "end": 32,
+          "empty": 0,
+          "used": 97,
+          "focused": 98,
+          "playing": 127
+        },
+        "3": {
+          "start": 33,
+          "end": 48,
+          "empty": 0,
+          "used": 55,
+          "focused": 56,
+          "playing": 127
+        },
+        "4": {
+          "start": 49,
+          "end": 64,
+          "empty": 0,
+          "used": 1,
+          "focused": 2,
+          "playing": 127
+        }
+      }
+    }
+  }
+}
