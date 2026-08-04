@@ -1,3 +1,9 @@
+type FeedbackVisualState =
+  | "empty"
+  | "used"
+  | "focused"
+  | "playing";
+
 type FeedbackItem = {
   id?: string;
   sourceId?: string;
@@ -5,6 +11,7 @@ type FeedbackItem = {
   value?: number;
   color?: string;
   raw?: number[];
+  state?: FeedbackVisualState;
 };
 
 type MonitorState = {
@@ -54,11 +61,7 @@ function ensureMonitor() {
   renderMonitor();
 }
 
-function chip(
-  label: string,
-  active: boolean,
-  activeColor: string,
-): string {
+function chip(label: string, active: boolean, activeColor: string): string {
   const bg = active ? activeColor : "rgba(255,255,255,.09)";
   const opacity = active ? "1" : ".62";
 
@@ -100,121 +103,109 @@ function renderMonitor() {
   ].join("");
 }
 
-function clearSpecialButtonStyle(node: HTMLElement) {
+function clearFeedbackStyle(node: HTMLElement) {
+  node.classList.remove(
+    "beyond-active",
+    "has-beyond-feedback",
+    "feedback-empty",
+    "feedback-used",
+    "feedback-focused",
+    "feedback-playing",
+  );
+
+  node.style.removeProperty("--beyond-color");
+  node.style.removeProperty("--feedback-color");
+  node.style.removeProperty("--ring-color");
   node.style.removeProperty("background");
   node.style.removeProperty("border-color");
   node.style.removeProperty("box-shadow");
   node.style.removeProperty("color");
+  node.style.removeProperty("opacity");
+  node.removeAttribute("data-feedback-state");
 }
 
-function styleSpecialButton(
-  node: HTMLElement,
-  item: FeedbackItem,
-) {
+function styleMasterButton(node: HTMLElement, item: FeedbackItem) {
   const active = Boolean(item.active);
 
   if (item.id === "MASTER-2") {
+    clearFeedbackStyle(node);
+
     if (active) {
-      node.style.background =
-        "linear-gradient(180deg,#ff3154,#a90027)";
+      node.classList.add("beyond-active", "has-beyond-feedback");
+      node.style.background = "linear-gradient(180deg,#ff3154,#a90027)";
       node.style.borderColor = "#ff8196";
       node.style.boxShadow =
         "0 0 0 2px rgba(255,36,72,.45),0 0 24px rgba(255,36,72,.85)";
       node.style.color = "#fff";
-
-      const label = node.querySelector("span");
-      if (label) label.textContent = "BLACKOUT ON";
-    } else {
-      clearSpecialButtonStyle(node);
-
-      const label = node.querySelector("span");
-      if (label) label.textContent = "Blackout";
     }
 
+    const label = node.querySelector("span");
+    if (label) label.textContent = active ? "BLACKOUT ON" : "Blackout";
     monitor.blackout = active;
   }
 
   if (item.id === "MASTER-3") {
+    clearFeedbackStyle(node);
+
     if (active) {
-      node.style.background =
-        "linear-gradient(180deg,#ffc44d,#a66100)";
+      node.classList.add("beyond-active", "has-beyond-feedback");
+      node.style.background = "linear-gradient(180deg,#ffc44d,#a66100)";
       node.style.borderColor = "#ffe0a1";
       node.style.boxShadow =
         "0 0 0 2px rgba(255,176,32,.42),0 0 24px rgba(255,176,32,.82)";
       node.style.color = "#fff";
-
-      const label = node.querySelector("span");
-      if (label) label.textContent = "PAUSED";
-    } else {
-      clearSpecialButtonStyle(node);
-
-      const label = node.querySelector("span");
-      if (label) label.textContent = "Pause";
     }
 
+    const label = node.querySelector("span");
+    if (label) label.textContent = active ? "PAUSED" : "Pause";
     monitor.pause = active;
   }
 }
 
-function updateButton(
-  node: HTMLElement,
-  item: FeedbackItem,
-) {
-  if (typeof item.active === "boolean") {
-    node.classList.toggle("beyond-active", item.active);
-    node.classList.toggle("is-active", item.active);
+function styleFxButton(node: HTMLElement, item: FeedbackItem) {
+  const visualState = item.state ?? "empty";
+  clearFeedbackStyle(node);
+  node.setAttribute("data-feedback-state", visualState);
+  node.classList.add(`feedback-${visualState}`);
+
+  if (visualState === "playing") {
+    node.classList.add("beyond-active", "has-beyond-feedback");
+    node.style.setProperty("--beyond-color", "#34a8ff");
+    node.style.setProperty("--feedback-color", "#34a8ff");
+    node.style.background = "linear-gradient(180deg,#46b7ff,#075b99)";
+    node.style.borderColor = "#9ddcff";
+    node.style.boxShadow =
+      "0 0 0 1px rgba(52,168,255,.7),0 0 15px rgba(52,168,255,.78)";
+    return;
   }
 
-  if (item.color && item.active) {
+  if (visualState === "focused") {
+    node.style.borderColor = "#e4e9ff";
+    node.style.boxShadow = "inset 0 0 0 2px rgba(228,233,255,.82)";
+    return;
+  }
+
+  if (visualState === "used") {
+    node.style.boxShadow = "inset 0 -3px 0 rgba(113,128,150,.9)";
+    node.style.opacity = ".88";
+  }
+}
+
+function styleOrdinaryButton(node: HTMLElement, item: FeedbackItem) {
+  const active = Boolean(item.active);
+
+  if (!active) {
+    clearFeedbackStyle(node);
+    return;
+  }
+
+  node.classList.add("beyond-active", "has-beyond-feedback");
+
+  if (item.color) {
     node.style.setProperty("--beyond-color", item.color);
     node.style.setProperty("--feedback-color", item.color);
     node.style.setProperty("--ring-color", item.color);
-    node.classList.add("has-beyond-feedback");
   }
-
-  styleSpecialButton(node, item);
-}
-
-function updateEncoder(node: HTMLElement, value: number) {
-  const leds = Array.from(
-    node.querySelectorAll<HTMLElement>(".enc-ring i"),
-  );
-
-  if (!leds.length) return;
-
-  const clamped = Math.max(0, Math.min(127, value));
-  const activeLed = Math.round(
-    (clamped / 127) * (leds.length - 1),
-  );
-
-  leds.forEach((led, index) => {
-    led.classList.toggle("on", index <= activeLed);
-  });
-}
-
-function updateAbsoluteKnob(
-  node: HTMLElement,
-  value: number,
-) {
-  const cap = node.querySelector<HTMLElement>(".abs-cap");
-  if (!cap) return;
-
-  const clamped = Math.max(0, Math.min(127, value));
-  const angle = -135 + (clamped / 127) * 270;
-  cap.style.transform = `rotate(${angle}deg)`;
-}
-
-function updateFader(node: HTMLElement, value: number) {
-  const clamped = Math.max(0, Math.min(127, value));
-  const percent = (clamped / 127) * 100;
-
-  const cap =
-    node.querySelector<HTMLElement>(".fader-cap");
-  const fill =
-    node.querySelector<HTMLElement>(".fader-level-fill");
-
-  if (cap) cap.style.top = `${100 - percent}%`;
-  if (fill) fill.style.height = `${percent}%`;
 }
 
 function humanEvent(item: FeedbackItem): string {
@@ -228,10 +219,12 @@ function humanEvent(item: FeedbackItem): string {
     return `BEYOND → ${value > 0 ? "PAUSE ON" : "PAUSE OFF"}`;
   }
 
+  if (item.state) {
+    return `BEYOND → ${item.sourceId ?? item.id} ${item.state.toUpperCase()}`;
+  }
+
   if (item.sourceId === "BRIGHT") {
-    return `BEYOND → BRIGHTNESS ${Math.round(
-      (value / 127) * 100,
-    )}%`;
+    return `BEYOND → BRIGHTNESS ${Math.round((value / 127) * 100)}%`;
   }
 
   return `BEYOND → ${item.sourceId ?? item.id} ${value}`;
@@ -240,28 +233,23 @@ function humanEvent(item: FeedbackItem): string {
 function applyOne(item: FeedbackItem) {
   if (!item.id || typeof document === "undefined") return;
 
-  const selector =
-    `[data-control-id="${CSS.escape(item.id)}"]`;
+  const selector = `[data-control-id="${CSS.escape(item.id)}"]`;
 
-  document
-    .querySelectorAll<HTMLElement>(selector)
-    .forEach((node) => {
-      updateButton(node, item);
+  document.querySelectorAll<HTMLElement>(selector).forEach((node) => {
+    if (item.id === "MASTER-2" || item.id === "MASTER-3") {
+      styleMasterButton(node, item);
+      return;
+    }
 
-      if (typeof item.value !== "number") return;
+    if (item.sourceId?.startsWith("FX-L") || item.state) {
+      styleFxButton(node, item);
+      return;
+    }
 
-      if (node.classList.contains("enc-unit")) {
-        updateEncoder(node, item.value);
-      }
-
-      if (node.classList.contains("abs-unit")) {
-        updateAbsoluteKnob(node, item.value);
-      }
-
-      if (node.classList.contains("fader-unit")) {
-        updateFader(node, item.value);
-      }
-    });
+    if (node.classList.contains("pad")) {
+      styleOrdinaryButton(node, item);
+    }
+  });
 
   monitor.lastEvent = humanEvent(item);
   renderMonitor();
@@ -283,7 +271,6 @@ function install() {
       monitor.connected =
         detail?.wifi?.state === "connected" ||
         detail?.active === "wifi";
-
       renderMonitor();
     }) as EventListener,
   );
@@ -298,10 +285,7 @@ function install() {
 
       if (!detail) return;
 
-      if (
-        "controls" in detail &&
-        Array.isArray(detail.controls)
-      ) {
+      if ("controls" in detail && Array.isArray(detail.controls)) {
         detail.controls.forEach(applyOne);
       } else {
         applyOne(detail as FeedbackItem);

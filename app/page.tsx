@@ -1,7 +1,13 @@
 "use client";
 
 import React, { PointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ensureBridgeTransport, sendControlEvent } from "./bridge-transport";
+import {
+  ensureBridgeTransport,
+  getControlFeedback,
+  replayFeedback,
+  sendControlEvent,
+  type FeedbackItem,
+} from "./bridge-transport";
 
 type EventSink = (type: string, id: string, value: number, pointerId: number) => void;
 type Layer = 1 | 2 | 3 | 4;
@@ -10,23 +16,68 @@ type TransportName = "usb" | "wifi" | null;
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
+type FeedbackDetail = FeedbackItem | { controls?: FeedbackItem[] };
+
+function feedbackForId(detail: FeedbackDetail | undefined, id: string): FeedbackItem | undefined {
+  if (!detail) return undefined;
+
+  if ("controls" in detail) {
+    return detail.controls?.find((item) => item.id === id);
+  }
+
+  return detail.id === id ? detail : undefined;
+}
+
 function Pad({
-  id, label, mode = "momentary", active = false, onPress, onEvent,
+  id,
+  label,
+  mode = "momentary",
+  active = false,
+  onPress,
+  onEvent,
 }: {
-  id: string; label?: string; mode?: ButtonMode; active?: boolean;
-  onPress?: () => void; onEvent: EventSink;
+  id: string;
+  label?: string;
+  mode?: ButtonMode;
+  active?: boolean;
+  onPress?: () => void;
+  onEvent: EventSink;
 }) {
   const [held, setHeld] = useState<Set<number>>(new Set());
   const [latched, setLatched] = useState(false);
+  const [feedbackKnown, setFeedbackKnown] = useState(false);
+  const [feedbackActive, setFeedbackActive] = useState(false);
+
+  useEffect(() => {
+    const apply = (item: FeedbackItem | undefined) => {
+      if (!item || typeof item.active !== "boolean") return;
+      setFeedbackKnown(true);
+      setFeedbackActive(item.active);
+    };
+
+    apply(getControlFeedback(id));
+
+    const handler = (event: Event) => {
+      apply(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+    };
+
+    window.addEventListener("beyond-feedback", handler as EventListener);
+    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
+  }, [id]);
+
   const isPressed = held.size > 0;
-  const isActive = active || isPressed || latched;
+  const isActive = active || isPressed || (feedbackKnown ? feedbackActive : latched);
 
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    setHeld((prev) => new Set(prev).add(e.pointerId));
-    if (mode === "toggle" && !onPress) setLatched((v) => !v);
+    setHeld((prev) => {
+      const next = new Set(prev);
+      next.add(e.pointerId);
+      return next;
+    });
+    if (mode === "toggle" && !onPress && !feedbackKnown) setLatched((v) => !v);
     onPress?.();
     onEvent("controlDown", id, 127, e.pointerId);
   };
@@ -56,14 +107,40 @@ function Pad({
 }
 
 function AbsoluteKnob({
-  id, label, initial = 0, defaultValue = 0, onEvent,
+  id,
+  label,
+  initial = 0,
+  defaultValue = 0,
+  onEvent,
 }: {
-  id: string; label: string; initial?: number; defaultValue?: number; onEvent: EventSink;
+  id: string;
+  label: string;
+  initial?: number;
+  defaultValue?: number;
+  onEvent: EventSink;
 }) {
   const [value, setValue] = useState(initial);
   const valueRef = useRef(initial);
   const active = useRef<Map<number, { startY: number; startValue: number }>>(new Map());
   const lastTap = useRef(0);
+
+  const applyFeedback = useCallback((item: FeedbackItem | undefined) => {
+    if (!item || typeof item.value !== "number" || active.current.size > 0) return;
+    const next = clamp(Math.round((item.value / 127) * 100), 0, 100);
+    valueRef.current = next;
+    setValue(next);
+  }, []);
+
+  useEffect(() => {
+    applyFeedback(getControlFeedback(id));
+
+    const handler = (event: Event) => {
+      applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+    };
+
+    window.addEventListener("beyond-feedback", handler as EventListener);
+    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
+  }, [id, applyFeedback]);
 
   const update = (nextValue: number, pointerId: number, type = "controlChange") => {
     const next = clamp(Math.round(nextValue), 0, 100);
@@ -96,6 +173,7 @@ function AbsoluteKnob({
     if (!active.current.has(e.pointerId)) return;
     active.current.delete(e.pointerId);
     onEvent(cancelled ? "controlCancel" : "controlUp", id, Math.round(valueRef.current * 1.27), e.pointerId);
+    if (active.current.size === 0) applyFeedback(getControlFeedback(id));
   };
 
   const angle = -135 + (value / 100) * 270;
@@ -111,7 +189,9 @@ function AbsoluteKnob({
         onContextMenu={(e) => e.preventDefault()}
       >
         <div className="abs-scale" />
-        <div className="abs-cap" style={{ transform: `rotate(${angle}deg)` }}><i /></div>
+        <div className="abs-cap" style={{ transform: `rotate(${angle}deg)` }}>
+          <i />
+        </div>
       </div>
       <span>{label}</span>
     </div>
@@ -119,9 +199,17 @@ function AbsoluteKnob({
 }
 
 function EndlessEncoder({
-  id, label, initial = 64, defaultValue = 64, onEvent,
+  id,
+  label,
+  initial = 64,
+  defaultValue = 64,
+  onEvent,
 }: {
-  id: string; label: string; initial?: number; defaultValue?: number; onEvent: EventSink;
+  id: string;
+  label: string;
+  initial?: number;
+  defaultValue?: number;
+  onEvent: EventSink;
 }) {
   const LED_COUNT = 19;
   const [value, setValue] = useState(initial);
@@ -129,6 +217,24 @@ function EndlessEncoder({
   const valueRef = useRef(initial);
   const active = useRef<Map<number, { startY: number; startValue: number }>>(new Map());
   const lastTap = useRef(0);
+
+  const applyFeedback = useCallback((item: FeedbackItem | undefined) => {
+    if (!item || typeof item.value !== "number" || active.current.size > 0) return;
+    const next = clamp(Math.round(item.value), 0, 127);
+    valueRef.current = next;
+    setValue(next);
+  }, []);
+
+  useEffect(() => {
+    applyFeedback(getControlFeedback(id));
+
+    const handler = (event: Event) => {
+      applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+    };
+
+    window.addEventListener("beyond-feedback", handler as EventListener);
+    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
+  }, [id, applyFeedback]);
 
   const update = (nextValue: number, pointerId: number, type = "controlChange") => {
     const next = clamp(Math.round(nextValue), 0, 127);
@@ -161,7 +267,10 @@ function EndlessEncoder({
   const end = (e: PointerEvent<HTMLDivElement>, cancelled = false) => {
     if (!active.current.has(e.pointerId)) return;
     active.current.delete(e.pointerId);
-    if (active.current.size === 0) setTouching(false);
+    if (active.current.size === 0) {
+      setTouching(false);
+      applyFeedback(getControlFeedback(id));
+    }
     onEvent(cancelled ? "controlCancel" : "controlUp", id, valueRef.current, e.pointerId);
   };
 
@@ -180,7 +289,13 @@ function EndlessEncoder({
         <div className="enc-ring" aria-hidden="true">
           {Array.from({ length: LED_COUNT }, (_, i) => {
             const angle = -135 + (270 / (LED_COUNT - 1)) * i;
-            return <i key={i} className={i <= activeLed ? "on" : ""} style={{ "--a": `${angle}deg` } as React.CSSProperties} />;
+            return (
+              <i
+                key={i}
+                className={i <= activeLed ? "on" : ""}
+                style={{ "--a": `${angle}deg` } as React.CSSProperties}
+              />
+            );
           })}
         </div>
         <div className="enc-cap" />
@@ -191,13 +306,39 @@ function EndlessEncoder({
 }
 
 function VerticalFader({
-  id, label, initial = 0, variant = "normal", onEvent,
+  id,
+  label,
+  initial = 0,
+  variant = "normal",
+  onEvent,
 }: {
-  id: string; label: string; initial?: number; variant?: "normal" | "color" | "led"; onEvent: EventSink;
+  id: string;
+  label: string;
+  initial?: number;
+  variant?: "normal" | "color" | "led";
+  onEvent: EventSink;
 }) {
   const [value, setValue] = useState(initial);
   const valueRef = useRef(initial);
   const active = useRef<Map<number, { grabOffset: number }>>(new Map());
+
+  const applyFeedback = useCallback((item: FeedbackItem | undefined) => {
+    if (!item || typeof item.value !== "number" || active.current.size > 0) return;
+    const next = clamp(Math.round(item.value), 0, 127);
+    valueRef.current = next;
+    setValue(next);
+  }, []);
+
+  useEffect(() => {
+    applyFeedback(getControlFeedback(id));
+
+    const handler = (event: Event) => {
+      applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+    };
+
+    window.addEventListener("beyond-feedback", handler as EventListener);
+    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
+  }, [id, applyFeedback]);
 
   const fromY = (el: HTMLDivElement, y: number, grabOffset: number) => {
     const rect = el.getBoundingClientRect();
@@ -212,11 +353,13 @@ function VerticalFader({
     e.preventDefault();
     const el = e.currentTarget;
     el.setPointerCapture(e.pointerId);
+
     const rect = el.getBoundingClientRect();
     const top = rect.top + 8;
     const bottom = rect.bottom - 8;
     const handleY = bottom - (valueRef.current / 127) * (bottom - top);
     const grabOffset = Math.abs(e.clientY - handleY) < 28 ? e.clientY - handleY : 0;
+
     active.current.set(e.pointerId, { grabOffset });
     const next = fromY(el, e.clientY, grabOffset);
     valueRef.current = next;
@@ -237,6 +380,7 @@ function VerticalFader({
     if (!active.current.has(e.pointerId)) return;
     active.current.delete(e.pointerId);
     onEvent(cancelled ? "controlCancel" : "controlUp", id, valueRef.current, e.pointerId);
+    if (active.current.size === 0) applyFeedback(getControlFeedback(id));
   };
 
   const pct = (value / 127) * 100;
@@ -266,19 +410,43 @@ function VerticalFader({
 }
 
 const LAYER_NAMES: Record<Layer, string> = {
-  1: "Content", 2: "Colors", 3: "Zones", 4: "Content 2",
+  1: "Content",
+  2: "Colors",
+  3: "Zones",
+  4: "Content 2",
 };
+
+/*
+  TEXT/LABEL MAP ONLY.
+  These strings mirror the functional legends documented for the Performer Console.
+  They do not change control IDs, layout, sizing, positions, MIDI behavior, or feedback.
+*/
 const AUX_ENCODER_LEGEND: Record<Layer, string> = {
-  1: "Geometric Live Effects", 2: "Channels 5-8", 3: "Channels 5-8", 4: "DMX Channel Outs 1-4",
+  1: "Geometric Live Effects",
+  2: "Channels 5-8",
+  3: "Channels 5-8",
+  4: "DMX Channel Outs 1-4",
 };
+
 const GRID1_LEGEND: Record<Layer, string> = {
-  1: "Main Workspace", 2: "White+ Color / Cue-Sft Beat / Ef-Sft Beat Presets", 3: "Zone Flips / Selection Directionality / Groups", 4: "2nd Workspace",
+  1: "Main Workspace",
+  2: "White+ Color / Cue-Sft Beat / Ef-Sft Beat Presets",
+  3: "Zone Flips / Selection Directionality / Groups",
+  4: "2nd Workspace",
 };
+
 const GRID2_LEGEND: Record<Layer, string> = {
-  1: "QuickFX / Color Picker / Zone Selection / Keys", 2: "Color Channels 1-4 / Individual Color Selections", 3: "Individual Zone Selections", 4: "Keys 1 / 8×8 Grid",
+  1: "QuickFX / Color Picker / Zone Selection / Keys",
+  2: "Color Channels 1-4 / Individual Color Selections",
+  3: "Individual Zone Selections",
+  4: "Keys 1 / 8×8 Grid",
 };
+
 const AUX_BUTTON_LEGEND: Record<Layer, string> = {
-  1: "Grid UI Options", 2: "Color Palette Presets", 3: "Zone User Presets", 4: "2nd Workspace Functions",
+  1: "Grid UI Options",
+  2: "Color Palette Presets",
+  3: "Zone User Presets",
+  4: "2nd Workspace Functions",
 };
 
 export default function Home() {
@@ -304,49 +472,11 @@ export default function Home() {
     };
 
     window.addEventListener("beyond-transport-state", transportHandler as EventListener);
-    return () => window.removeEventListener("beyond-transport-state", transportHandler as EventListener);
-  }, []);
+    window.setTimeout(replayFeedback, 0);
 
-  useEffect(() => {
-    const faderPair: Record<string, string> = {
-      "LIVE-E1": "ANIM", "LIVE-E2": "SIZE", "LIVE-E3": "CUESFT", "LIVE-E4": "EFSFT",
-      "LIVE-E5": "BRUSH", "LIVE-E6": "COLOR", "LIVE-E7": "POINTS", "LIVE-E8": "BRIGHT",
+    return () => {
+      window.removeEventListener("beyond-transport-state", transportHandler as EventListener);
     };
-    type FeedbackItem = { id?: string; color?: string; active?: boolean };
-
-    const applyOne = (item: FeedbackItem) => {
-      if (!item?.id) return;
-      const escaped = CSS.escape(item.id);
-      const nodes = document.querySelectorAll<HTMLElement>(`[data-control-id="${escaped}"]`);
-      nodes.forEach((node) => {
-        if (item.color) {
-          node.style.setProperty("--beyond-color", item.color);
-          node.style.setProperty("--ring-color", item.color);
-          node.style.setProperty("--feedback-color", item.color);
-          node.classList.add("has-beyond-feedback");
-        }
-        if (typeof item.active === "boolean") node.classList.toggle("beyond-active", item.active);
-      });
-
-      const pairedFader = faderPair[item.id];
-      if (pairedFader && item.color) {
-        document.querySelectorAll<HTMLElement>(`[data-control-id="${CSS.escape(pairedFader)}"]`).forEach((node) => {
-          node.style.setProperty("--beyond-color", item.color!);
-          node.style.setProperty("--feedback-color", item.color!);
-          node.classList.add("has-beyond-feedback");
-        });
-      }
-    };
-
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail as FeedbackItem | { controls?: FeedbackItem[] } | undefined;
-      if (!detail) return;
-      if ("controls" in detail && Array.isArray(detail.controls)) detail.controls.forEach(applyOne);
-      else applyOne(detail as FeedbackItem);
-    };
-
-    window.addEventListener("beyond-feedback", handler as EventListener);
-    return () => window.removeEventListener("beyond-feedback", handler as EventListener);
   }, []);
 
   const onEvent = useCallback<EventSink>((type, id, value, pointerId) => {
@@ -358,11 +488,17 @@ export default function Home() {
 
   return (
     <main className="surface">
+
       <section className="top-row">
         <div className="aux-encoders">
-          <div className="caption">AUX Encoders: <b style={{ fontSize: "1.12em" }}>{AUX_ENCODER_LEGEND[layer]}</b></div>
-          {[1,2,3,4].map((n) => <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>)}
+          <div className="caption">
+            AUX Encoders: <b style={{ fontSize: "1.12em" }}>{AUX_ENCODER_LEGEND[layer]}</b>
+          </div>
+          {[1,2,3,4].map((n) => (
+            <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="master">
           <div className="caption">Master Functions</div>
           {["Physics","Blackout","Pause","Enable / Disable"].map((label, i) => (
@@ -373,20 +509,42 @@ export default function Home() {
 
       <section className="grid-row">
         <div className="grid-block">
-          <div className="caption">Grid 2: <b style={{ fontSize: "1.12em" }}>{GRID2_LEGEND[layer]}</b></div>
-          <div className="grid grid2">{Array.from({ length: 64 }, (_, i) => <Pad key={i} id={`G2-${i+1}`} onEvent={onEvent}/>)}</div>
+          <div className="caption">
+            Grid 2: <b style={{ fontSize: "1.12em" }}>{GRID2_LEGEND[layer]}</b>
+          </div>
+          <div className="grid grid2">
+            {Array.from({ length: 64 }, (_, i) => (
+              <Pad key={i} id={`G2-${i+1}`} onEvent={onEvent}/>
+            ))}
+          </div>
         </div>
+
         <div className="grid-block">
-          <div className="caption">Grid 1: <b style={{ fontSize: "1.12em" }}>{GRID1_LEGEND[layer]}</b></div>
-          <div className="grid grid1">{Array.from({ length: 48 }, (_, i) => <Pad key={i} id={`G1-${i+1}`} onEvent={onEvent}/>)}</div>
+          <div className="caption">
+            Grid 1: <b style={{ fontSize: "1.12em" }}>{GRID1_LEGEND[layer]}</b>
+          </div>
+          <div className="grid grid1">
+            {Array.from({ length: 48 }, (_, i) => (
+              <Pad key={i} id={`G1-${i+1}`} onEvent={onEvent}/>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="controls-row row-knobs-layers">
         <div className="fx-channels">
-          <div className="subgroup"><span>FX Action</span><div className="four-knobs">{[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`FX-${n}`} label={`${n}`} onEvent={onEvent}/>)}</div></div>
-          <div className="subgroup"><span>Channels</span><div className="four-knobs">{[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`CH-${n}`} label={`${n}`} onEvent={onEvent}/>)}</div></div>
+          <div className="subgroup"><span>FX Action</span>
+            <div className="four-knobs">
+              {[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`FX-${n}`} label={`${n}`} onEvent={onEvent}/>)}
+            </div>
+          </div>
+          <div className="subgroup"><span>Channels</span>
+            <div className="four-knobs">
+              {[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`CH-${n}`} label={`${n}`} onEvent={onEvent}/>)}
+            </div>
+          </div>
         </div>
+
         <div className="layers">
           {[1,2,3,4].map((n) => (
             <div className="named-key" key={n}>
@@ -396,24 +554,43 @@ export default function Home() {
             </div>
           ))}
         </div>
+
         <div className="bpm">
           {["Half","Double","Resync","Tap"].map((label, i) => (
-            <div className="named-key" key={label}><span>{label}</span><Pad id={`BPM-${i+1}`} onEvent={onEvent}/><small>BPM</small></div>
+            <div className="named-key" key={label}>
+              <span>{label}</span>
+              <Pad id={`BPM-${i+1}`} onEvent={onEvent}/>
+              <small>BPM</small>
+            </div>
           ))}
         </div>
       </section>
 
       <section className="controls-row row-buttons">
         <div className="cc-buttons">
-          {["CC1","CC2","CC3","CC4"].map((label, i) => <div className="named-key cc" key={label}><Pad id={`CC-${i+1}`} onEvent={onEvent}/><span>{label}</span></div>)}
+          {["CC1","CC2","CC3","CC4"].map((label, i) => (
+            <div className="named-key cc" key={label}>
+              <Pad id={`CC-${i+1}`} onEvent={onEvent}/>
+              <span>{label}</span>
+            </div>
+          ))}
         </div>
+
         <div className="aux-buttons">
-          <div className="caption">AUX Button Panel: <b style={{ fontSize: "1.12em" }}>{AUX_BUTTON_LEGEND[layer]}</b></div>
-          {Array.from({ length: 16 }, (_, i) => <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>)}
+          <div className="caption">
+            AUX Button Panel: <b style={{ fontSize: "1.12em" }}>{AUX_BUTTON_LEGEND[layer]}</b>
+          </div>
+          {Array.from({ length: 16 }, (_, i) => (
+            <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="content-tools">
           {["Toggle","Restart","Flash","Page Up","One Cue","Multi Cue","Groups","Page Down"].map((label, i) => (
-            <div className="tool-key" key={label}><span>{label}</span><Pad id={`TOOL-${i+1}`} mode={i === 0 ? "toggle" : "momentary"} onEvent={onEvent}/></div>
+            <div className="tool-key" key={label}>
+              <span>{label}</span>
+              <Pad id={`TOOL-${i+1}`} mode={i === 0 ? "toggle" : "momentary"} onEvent={onEvent}/>
+            </div>
           ))}
         </div>
       </section>
@@ -421,8 +598,11 @@ export default function Home() {
       <section className="controls-row row-encoder-banks">
         <div className="qshift-knobs">
           <div className="caption">Q-Shift</div>
-          {[1,2,3,4,5,6,7,8].map((n) => <AbsoluteKnob key={n} id={`Q-${n}`} label={`${n}`} onEvent={onEvent}/>)}
+          {[1,2,3,4,5,6,7,8].map((n) => (
+            <AbsoluteKnob key={n} id={`Q-${n}`} label={`${n}`} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="live-encoders">
           <div className="caption">LIVE CONTROL EFFECTS</div>
           {["Cue Speed","RotoZ Move","Cue-Sft Clock","Ef-Sft Clock","Brush Shift","Hue Shift","Saturation","Scanrate"].map((label, i) => (
@@ -432,7 +612,12 @@ export default function Home() {
       </section>
 
       <section className="fader-row">
-        <div className="qshift-faders">{[1,2,3,4,5,6,7,8].map((n) => <VerticalFader key={n} id={`QF-${n}`} label={`${n}`} initial={0} onEvent={onEvent}/>)}</div>
+        <div className="qshift-faders">
+          {[1,2,3,4,5,6,7,8].map((n) => (
+            <VerticalFader key={n} id={`QF-${n}`} label={`${n}`} initial={0} onEvent={onEvent}/>
+          ))}
+        </div>
+
         <div className="live-faders">
           <VerticalFader id="ANIM" label="Anim Speed" initial={38} variant="led" onEvent={onEvent}/>
           <VerticalFader id="SIZE" label="Size XY" initial={62} onEvent={onEvent}/>

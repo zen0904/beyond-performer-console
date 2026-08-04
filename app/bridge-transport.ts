@@ -1,5 +1,9 @@
 import { CONTROL_MAP, getControl } from "./control-map";
-import type { Layer, MidiBinding } from "./performer-midi";
+import {
+  FX_FEEDBACK,
+  type Layer,
+  type MidiBinding,
+} from "./performer-midi";
 import "./feedback-runtime";
 
 type ControlEventType =
@@ -11,13 +15,96 @@ type ControlEventType =
 
 type TransportState = "disconnected" | "connecting" | "connected";
 
+export type FeedbackVisualState =
+  | "empty"
+  | "used"
+  | "focused"
+  | "playing";
+
+export type FeedbackItem = {
+  id: string;
+  sourceId?: string;
+  active?: boolean;
+  value?: number;
+  color?: string;
+  raw?: number[];
+  state?: FeedbackVisualState;
+};
+
+const FEEDBACK_CACHE_KEY = "beyondWingFeedbackCacheV2";
+
 let socket: WebSocket | null = null;
 let state: TransportState = "disconnected";
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let listenersInstalled = false;
+let cacheLoaded = false;
+const feedbackCache = new Map<string, FeedbackItem>();
 
 function isRelayMode(): boolean {
   return typeof window !== "undefined" && window.parent !== window;
+}
+
+function loadFeedbackCache() {
+  if (cacheLoaded || typeof window === "undefined") return;
+  cacheLoaded = true;
+
+  try {
+    const raw = window.localStorage.getItem(FEEDBACK_CACHE_KEY);
+    if (!raw) return;
+
+    const items = JSON.parse(raw) as FeedbackItem[];
+    if (!Array.isArray(items)) return;
+
+    items.forEach((item) => {
+      if (item?.id) feedbackCache.set(item.id, item);
+    });
+  } catch {
+    // Ignore damaged or unavailable local storage.
+  }
+}
+
+function persistFeedbackCache() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      FEEDBACK_CACHE_KEY,
+      JSON.stringify(Array.from(feedbackCache.values())),
+    );
+  } catch {
+    // The live connection still works even if storage is unavailable.
+  }
+}
+
+function cacheFeedback(items: FeedbackItem[]) {
+  loadFeedbackCache();
+
+  items.forEach((item) => {
+    const previous = feedbackCache.get(item.id);
+    feedbackCache.set(item.id, { ...previous, ...item });
+  });
+
+  persistFeedbackCache();
+}
+
+function dispatchFeedback(items: FeedbackItem[]) {
+  if (typeof window === "undefined" || items.length === 0) return;
+
+  window.dispatchEvent(
+    new CustomEvent("beyond-feedback", {
+      detail: { controls: items },
+    }),
+  );
+}
+
+export function getControlFeedback(id: string): FeedbackItem | undefined {
+  loadFeedbackCache();
+  return feedbackCache.get(id);
+}
+
+export function replayFeedback() {
+  loadFeedbackCache();
+  dispatchFeedback(Array.from(feedbackCache.values()));
 }
 
 function dispatchTransportState(next: TransportState) {
@@ -35,6 +122,10 @@ function dispatchTransportState(next: TransportState) {
       },
     }),
   );
+
+  if (next === "connected") {
+    window.setTimeout(replayFeedback, 0);
+  }
 }
 
 function normalizeBridgeAddress(value: string): string {
@@ -45,6 +136,14 @@ function normalizeBridgeAddress(value: string): string {
     .replace(/\/+$/, "");
 }
 
+function ensureWsPath(address: string): string {
+  const normalized = normalizeBridgeAddress(address);
+  const slashIndex = normalized.indexOf("/");
+
+  if (slashIndex >= 0) return normalized;
+  return `${normalized}/ws`;
+}
+
 function directBridgeUrl(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -53,12 +152,10 @@ function directBridgeUrl(): string | null {
     params.get("bridge") ||
     window.localStorage.getItem("beyondBridge");
 
-  if (saved) {
-    return `ws://${normalizeBridgeAddress(saved)}`;
-  }
+  if (saved) return `ws://${ensureWsPath(saved)}`;
 
   if (window.location.port === "8765") {
-    return `ws://${window.location.host}`;
+    return `ws://${window.location.host}/ws`;
   }
 
   return null;
@@ -88,9 +185,11 @@ function controlToUiIds(controlId: string): string[] {
     "GRID-TOGGLE": "TOOL-1",
     "GRID-RESTART": "TOOL-2",
     "GRID-FLASH": "TOOL-3",
+    "GRID-PAGE-UP": "TOOL-4",
     "GRID-ONE-CUE": "TOOL-5",
     "GRID-MULTI-CUE": "TOOL-6",
     "GRID-GROUPS": "TOOL-7",
+    "GRID-PAGE-DOWN": "TOOL-8",
   };
 
   if (fixed[controlId]) return [fixed[controlId]];
@@ -111,21 +210,48 @@ function controlToUiIds(controlId: string): string[] {
   return [controlId];
 }
 
-function feedbackColor(controlId: string, value: number): string | undefined {
-  if (value <= 0) return undefined;
+function feedbackColor(
+  controlId: string,
+  active: boolean,
+  visualState?: FeedbackVisualState,
+): string | undefined {
+  if (!active && visualState !== "focused" && visualState !== "used") {
+    return undefined;
+  }
+
   if (controlId === "MASTER-BLACKOUT") return "#ff2448";
   if (controlId === "MASTER-PAUSE") return "#ffb020";
   if (controlId === "MASTER-ENABLE") return "#2ad67d";
-  if (controlId.startsWith("FX-L")) return "#34a8ff";
+  if (visualState === "playing") return "#34a8ff";
+  if (visualState === "focused") return "#d9e2ff";
+  if (visualState === "used") return "#718096";
   return undefined;
+}
+
+function getFxFeedbackState(
+  controlId: string,
+  value: number,
+): FeedbackVisualState | undefined {
+  const match = controlId.match(/^FX-L([1-4])-\d+$/);
+  if (!match) return undefined;
+
+  const layer = Number(match[1]) as Layer;
+  const values = FX_FEEDBACK[layer];
+
+  if (value === values.playing) return "playing";
+  if (value === values.focused) return "focused";
+  if (value === values.used) return "used";
+  return "empty";
 }
 
 function applyMidiFeedback(bytes: number[]) {
   if (typeof window === "undefined" || bytes.length < 3) return;
 
-  const [status, number, value] = bytes.map((n) => n & 0xff);
+  const [status, number, rawValue] = bytes.map((n) => n & 0xff);
   const command = status & 0xf0;
   const channel = (status & 0x0f) + 1;
+  const isNoteOff = command === 0x80 || (command === 0x90 && rawValue === 0);
+  const value = isNoteOff ? 0 : rawValue;
 
   const type: MidiBinding["type"] | null =
     command === 0x90 || command === 0x80
@@ -144,16 +270,22 @@ function applyMidiFeedback(bytes: number[]) {
         entry.midi.channel === channel &&
         entry.midi.number === number,
     )
-    .flatMap((entry) =>
-      controlToUiIds(entry.id).map((id) => ({
+    .flatMap((entry) => {
+      const visualState = getFxFeedbackState(entry.id, value);
+      const active = visualState
+        ? visualState === "playing"
+        : value > 0;
+
+      return controlToUiIds(entry.id).map((id) => ({
         id,
         sourceId: entry.id,
-        active: value > 0,
+        active,
         value,
-        color: feedbackColor(entry.id, value),
+        state: visualState,
+        color: feedbackColor(entry.id, active, visualState),
         raw: bytes,
-      })),
-    );
+      } satisfies FeedbackItem));
+    });
 
   window.dispatchEvent(
     new CustomEvent("beyond-raw-feedback", {
@@ -162,11 +294,8 @@ function applyMidiFeedback(bytes: number[]) {
   );
 
   if (controls.length) {
-    window.dispatchEvent(
-      new CustomEvent("beyond-feedback", {
-        detail: { controls },
-      }),
-    );
+    cacheFeedback(controls);
+    dispatchFeedback(controls);
   }
 }
 
@@ -188,6 +317,7 @@ function handleBridgeMessage(raw: string) {
 function installWindowListeners() {
   if (listenersInstalled || typeof window === "undefined") return;
   listenersInstalled = true;
+  loadFeedbackCache();
 
   window.addEventListener("message", (event: MessageEvent) => {
     const message = event.data as
@@ -307,9 +437,11 @@ function uiIdToControlId(id: string, layer: Layer): string | null {
     "TOOL-1": "GRID-TOGGLE",
     "TOOL-2": "GRID-RESTART",
     "TOOL-3": "GRID-FLASH",
+    "TOOL-4": "GRID-PAGE-UP",
     "TOOL-5": "GRID-ONE-CUE",
     "TOOL-6": "GRID-MULTI-CUE",
     "TOOL-7": "GRID-GROUPS",
+    "TOOL-8": "GRID-PAGE-DOWN",
   };
 
   if (tools[id]) return tools[id];

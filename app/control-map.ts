@@ -40,9 +40,11 @@ add("GRID-TAP-TEMPO","button","Tap Tempo",{type:"note",channel:1,number:BUTTON_N
 add("GRID-TOGGLE","button","Toggle",{type:"note",channel:1,number:BUTTON_NOTES.toggle});
 add("GRID-RESTART","button","Restart",{type:"note",channel:1,number:BUTTON_NOTES.restart});
 add("GRID-FLASH","button","Flash",{type:"note",channel:1,number:BUTTON_NOTES.flash});
+add("GRID-PAGE-UP","button","Page Up",{type:"note",channel:1,number:BUTTON_NOTES.pageUp});
 add("GRID-ONE-CUE","button","One Cue",{type:"note",channel:1,number:BUTTON_NOTES.oneCue});
 add("GRID-MULTI-CUE","button","Multi Cue",{type:"note",channel:1,number:BUTTON_NOTES.multiCue});
 add("GRID-GROUPS","button","Groups",{type:"note",channel:1,number:BUTTON_NOTES.groups});
+add("GRID-PAGE-DOWN","button","Page Down",{type:"note",channel:1,number:BUTTON_NOTES.pageDown});
 
 add("BPM-HALF","button","Half",{type:"note",channel:1,number:BUTTON_NOTES.bpmHalf});
 add("BPM-DOUBLE","button","Double",{type:"note",channel:1,number:BUTTON_NOTES.bpmDouble});
