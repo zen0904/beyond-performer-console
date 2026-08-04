@@ -300,6 +300,10 @@ function VerticalFader({
         onContextMenu={(e) => e.preventDefault()}
       >
         <div className="rail" />
+        <div className="fader-level" aria-hidden="true">
+          <div className="fader-level-fill" style={{ height: `${pct}%` }} />
+          {Array.from({ length: 11 }, (_, i) => <i key={i} style={{ bottom: `${i * 10}%` }} />)}
+        </div>
         {variant === "led" ? <div className="mini-meter"><i/><i/><i/><i/><i/></div> : null}
         {variant === "color" ? <div className="rainbow" /> : null}
         <div className="fader-cap" style={{ top: `${100 - pct}%` }}><i /></div>

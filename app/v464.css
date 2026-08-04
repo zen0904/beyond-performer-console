@@ -1,0 +1,79 @@
+/* V4.6.4
+   ONLY:
+   1) AUX Button Panel 30px -> 32px
+   2) add a slim illuminated level/scale strip beside every fader
+   No layout/position changes elsewhere.
+*/
+
+.aux-buttons {
+  grid-template-columns: repeat(8, 32px) !important;
+  grid-template-rows: repeat(2, 32px) !important;
+}
+.aux-buttons > .pad {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+}
+
+/* Slim illuminated "scale sticker" beside the rail.
+   Absolute overlay: does not consume layout space or move the fader. */
+.fader-level {
+  position: absolute;
+  top: 4%;
+  bottom: 6%;
+  right: -22%;
+  width: 13%;
+  min-width: 5px;
+  max-width: 9px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #111511, #080a08);
+  border: 1px solid rgba(190,210,190,.18);
+  box-shadow:
+    inset 0 0 3px rgba(255,255,255,.08),
+    0 0 4px rgba(0,0,0,.7);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Dynamic fill follows actual fader value. */
+.fader-level-fill {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    #fff07b 0%,
+    #8cff78 24%,
+    #52e9c2 48%,
+    #54b7ff 70%,
+    #9d70ff 86%,
+    #ff6fc3 100%
+  );
+  box-shadow:
+    0 0 5px rgba(105,215,255,.72),
+    0 0 9px rgba(105,215,255,.35);
+  opacity: .95;
+}
+
+/* 0–100 tick marks, like a printed scale but luminous. */
+.fader-level > i {
+  position: absolute;
+  left: 18%;
+  width: 64%;
+  height: 1px;
+  background: rgba(238,245,238,.46);
+  box-shadow: 0 0 2px rgba(255,255,255,.32);
+  transform: translateY(50%);
+  z-index: 2;
+}
+
+/* Avoid collision with the special built-in visual bars. */
+.fader-unit.color .fader-level {
+  right: -9%;
+}
+.fader-unit.led .fader-level {
+  right: -8%;
+}
