@@ -9,154 +9,115 @@ type ControlEventType =
   | "controlChange"
   | string;
 
-type LinkName = "usb" | "wifi";
-type LinkState = "disabled" | "connecting" | "connected";
+type TransportState = "disconnected" | "connecting" | "connected";
 
-type Link = {
-  name: LinkName;
-  priority: number;
-  url: string | null;
-  socket: WebSocket | null;
-  state: LinkState;
-  stableSince: number;
-  lastPong: number;
-  reconnectTimer: ReturnType<typeof setTimeout> | null;
-};
+let socket: WebSocket | null = null;
+let state: TransportState = "disconnected";
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let listenersInstalled = false;
 
-const links: Record<LinkName, Link> = {
-  usb: {
-    name: "usb",
-    priority: 1,
-    url: null,
-    socket: null,
-    state: "disabled",
-    stableSince: 0,
-    lastPong: 0,
-    reconnectTimer: null,
-  },
-  wifi: {
-    name: "wifi",
-    priority: 2,
-    url: null,
-    socket: null,
-    state: "disabled",
-    stableSince: 0,
-    lastPong: 0,
-    reconnectTimer: null,
-  },
-};
-
-let activeLink: LinkName | null = null;
-let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-
-const USB_RETURN_STABLE_MS = 500;
-const HEARTBEAT_MS = 800;
-const PONG_TIMEOUT_MS = 2400;
-
-function cleanEndpoint(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const cleaned = value
-    .trim()
-    .replace(/^https?:\/\//i, "")
-    .replace(/^wss?:\/\//i, "")
-    .replace(/\/+$/, "");
-  return cleaned ? `ws://${cleaned}/ws` : null;
+function isRelayMode(): boolean {
+  return typeof window !== "undefined" && window.parent !== window;
 }
 
-function loadEndpoints() {
+function dispatchTransportState(next: TransportState) {
+  state = next;
+
   if (typeof window === "undefined") return;
 
-  const params = new URLSearchParams(window.location.search);
-
-  const usb =
-    params.get("usb") ||
-    window.localStorage.getItem("beyondUsbBridge");
-
-  const wifi =
-    params.get("wifi") ||
-    params.get("bridge") ||
-    window.localStorage.getItem("beyondWifiBridge") ||
-    window.localStorage.getItem("beyondBridge");
-
-  links.usb.url = cleanEndpoint(usb);
-
-  links.wifi.url =
-    cleanEndpoint(wifi) ||
-    (window.location.port === "8765"
-      ? `ws://${window.location.host}/ws`
-      : null);
-}
-
-function dispatchState() {
-  if (typeof window === "undefined") return;
   window.dispatchEvent(
     new CustomEvent("beyond-transport-state", {
       detail: {
-        active: activeLink,
-        usb: {
-          state: links.usb.state,
-          url: links.usb.url,
-          lastPong: links.usb.lastPong,
-        },
-        wifi: {
-          state: links.wifi.state,
-          url: links.wifi.url,
-          lastPong: links.wifi.lastPong,
-        },
+        active: next === "connected" ? "wifi" : null,
+        wifi: { state: next },
+        usb: { state: "disabled" },
+        mode: isRelayMode() ? "local-relay" : "direct",
       },
     }),
   );
 }
 
-function isUsable(link: Link): boolean {
-  return (
-    link.state === "connected" &&
-    !!link.socket &&
-    link.socket.readyState === WebSocket.OPEN &&
-    Date.now() - link.lastPong < PONG_TIMEOUT_MS
-  );
+function normalizeBridgeAddress(value: string): string {
+  return value
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^wss?:\/\//i, "")
+    .replace(/\/+$/, "");
 }
 
-function selectActive() {
-  const now = Date.now();
+function directBridgeUrl(): string | null {
+  if (typeof window === "undefined") return null;
 
-  const usbReady =
-    isUsable(links.usb) &&
-    now - links.usb.stableSince >= USB_RETURN_STABLE_MS;
+  const params = new URLSearchParams(window.location.search);
+  const saved =
+    params.get("bridge") ||
+    window.localStorage.getItem("beyondBridge");
 
-  const wifiReady = isUsable(links.wifi);
-
-  const next: LinkName | null = usbReady
-    ? "usb"
-    : wifiReady
-      ? "wifi"
-      : null;
-
-  if (next !== activeLink) {
-    activeLink = next;
-    dispatchState();
+  if (saved) {
+    return `ws://${normalizeBridgeAddress(saved)}`;
   }
+
+  if (window.location.port === "8765") {
+    return `ws://${window.location.host}`;
+  }
+
+  return null;
 }
 
-function scheduleReconnect(link: Link) {
-  if (link.reconnectTimer || !link.url) return;
+function scheduleReconnect() {
+  if (reconnectTimer || typeof window === "undefined") return;
 
-  link.reconnectTimer = setTimeout(() => {
-    link.reconnectTimer = null;
-    connect(link);
-  }, 700);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    ensureBridgeTransport();
+  }, 900);
 }
 
-function feedbackAliases(id: string): string[] {
-  if (id.startsWith("AUX-L2-")) {
-    return [id, id.replace("AUX-L2-", "AUX-E")];
+function controlToUiIds(controlId: string): string[] {
+  const fixed: Record<string, string> = {
+    "MASTER-PHYSICS": "MASTER-1",
+    "MASTER-BLACKOUT": "MASTER-2",
+    "MASTER-PAUSE": "MASTER-3",
+    "MASTER-ENABLE": "MASTER-4",
+
+    "BPM-HALF": "BPM-1",
+    "BPM-DOUBLE": "BPM-2",
+    "BPM-RESYNC": "BPM-3",
+    "BPM-TAP": "BPM-4",
+
+    "GRID-TOGGLE": "TOOL-1",
+    "GRID-RESTART": "TOOL-2",
+    "GRID-FLASH": "TOOL-3",
+    "GRID-ONE-CUE": "TOOL-5",
+    "GRID-MULTI-CUE": "TOOL-6",
+    "GRID-GROUPS": "TOOL-7",
+  };
+
+  if (fixed[controlId]) return [fixed[controlId]];
+
+  const mainGrid = controlId.match(/^L[14]-GRID1-(\d+)$/);
+  if (mainGrid) return [`G1-${mainGrid[1]}`];
+
+  const fxGrid = controlId.match(/^FX-L([1-4])-(\d+)$/);
+  if (fxGrid) {
+    const layer = Number(fxGrid[1]);
+    const cell = Number(fxGrid[2]);
+    return [`G2-${(layer - 1) * 16 + cell}`];
   }
 
-  if (id.startsWith("AUX-L3-")) {
-    return [id, id.replace("AUX-L3-", "AUX-E")];
-  }
+  const aux = controlId.match(/^AUX-L[23]-(\d+)$/);
+  if (aux) return [`AUX-E${aux[1]}`];
 
-  return [id];
+  return [controlId];
+}
+
+function feedbackColor(controlId: string, value: number): string | undefined {
+  if (value <= 0) return undefined;
+  if (controlId === "MASTER-BLACKOUT") return "#ff2448";
+  if (controlId === "MASTER-PAUSE") return "#ffb020";
+  if (controlId === "MASTER-ENABLE") return "#2ad67d";
+  if (controlId.startsWith("FX-L")) return "#34a8ff";
+  return undefined;
 }
 
 function applyMidiFeedback(bytes: number[]) {
@@ -184,12 +145,21 @@ function applyMidiFeedback(bytes: number[]) {
         entry.midi.number === number,
     )
     .flatMap((entry) =>
-      feedbackAliases(entry.id).map((id) => ({
+      controlToUiIds(entry.id).map((id) => ({
         id,
+        sourceId: entry.id,
         active: value > 0,
         value,
+        color: feedbackColor(entry.id, value),
+        raw: bytes,
       })),
     );
+
+  window.dispatchEvent(
+    new CustomEvent("beyond-raw-feedback", {
+      detail: { midi: bytes, controls },
+    }),
+  );
 
   if (controls.length) {
     window.dispatchEvent(
@@ -200,167 +170,118 @@ function applyMidiFeedback(bytes: number[]) {
   }
 }
 
-function parseBridgeMessage(link: Link, raw: string) {
+function handleBridgeMessage(raw: string) {
   try {
-    const msg = JSON.parse(raw) as {
+    const message = JSON.parse(raw) as {
       type?: string;
-      ts?: number;
       midi?: number[];
     };
 
-    if (msg.type === "pong") {
-      link.lastPong = Date.now();
-      if (!link.stableSince) link.stableSince = Date.now();
-      selectActive();
+    if (message.type === "midi" && Array.isArray(message.midi)) {
+      applyMidiFeedback(message.midi);
+    }
+  } catch {
+    // The bridge may also emit diagnostic strings.
+  }
+}
+
+function installWindowListeners() {
+  if (listenersInstalled || typeof window === "undefined") return;
+  listenersInstalled = true;
+
+  window.addEventListener("message", (event: MessageEvent) => {
+    const message = event.data as
+      | {
+          source?: string;
+          type?: string;
+          connected?: boolean;
+          data?: string;
+        }
+      | undefined;
+
+    if (!message || message.source !== "beyond-wing-parent") return;
+
+    if (message.type === "bridge-status") {
+      dispatchTransportState(
+        message.connected ? "connected" : "disconnected",
+      );
       return;
     }
 
     if (
-      link.name === activeLink &&
-      msg.type === "midi" &&
-      Array.isArray(msg.midi)
+      message.type === "bridge-message" &&
+      typeof message.data === "string"
     ) {
-      applyMidiFeedback(msg.midi);
+      handleBridgeMessage(message.data);
     }
-  } catch {
-    // Ignore non-JSON diagnostics.
-  }
+  });
 }
 
-function connect(link: Link) {
-  if (!link.url || typeof window === "undefined") {
-    link.state = "disabled";
-    dispatchState();
+function connectDirect() {
+  const url = directBridgeUrl();
+
+  if (!url) {
+    dispatchTransportState("disconnected");
     return;
   }
 
   if (
-    link.socket &&
-    (link.socket.readyState === WebSocket.OPEN ||
-      link.socket.readyState === WebSocket.CONNECTING)
+    socket &&
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
   ) {
     return;
   }
 
-  link.state = "connecting";
-  dispatchState();
+  dispatchTransportState("connecting");
 
   try {
-    const ws = new WebSocket(link.url);
-    link.socket = ws;
+    socket = new WebSocket(url);
 
-    ws.onopen = () => {
-      link.state = "connected";
-      link.lastPong = Date.now();
-      link.stableSince = Date.now();
-
-      try {
-        ws.send(JSON.stringify({ type: "ping", ts: Date.now() }));
-      } catch {}
-
-      selectActive();
-      dispatchState();
+    socket.onopen = () => {
+      dispatchTransportState("connected");
     };
 
-    ws.onmessage = (event) => {
-      parseBridgeMessage(link, String(event.data));
+    socket.onmessage = (event) => {
+      handleBridgeMessage(String(event.data));
     };
 
-    ws.onerror = () => {
-      link.state = "connecting";
-      dispatchState();
+    socket.onerror = () => {
+      dispatchTransportState("disconnected");
     };
 
-    ws.onclose = () => {
-      link.socket = null;
-      link.state = "connecting";
-      link.stableSince = 0;
-      link.lastPong = 0;
-
-      selectActive();
-      dispatchState();
-      scheduleReconnect(link);
+    socket.onclose = () => {
+      socket = null;
+      dispatchTransportState("disconnected");
+      scheduleReconnect();
     };
   } catch {
-    link.socket = null;
-    link.state = "connecting";
-    scheduleReconnect(link);
+    socket = null;
+    dispatchTransportState("disconnected");
+    scheduleReconnect();
   }
-}
-
-function startHeartbeat() {
-  if (heartbeatTimer || typeof window === "undefined") return;
-
-  heartbeatTimer = setInterval(() => {
-    const now = Date.now();
-
-    (Object.values(links) as Link[]).forEach((link) => {
-      if (
-        link.socket &&
-        link.socket.readyState === WebSocket.OPEN
-      ) {
-        try {
-          link.socket.send(JSON.stringify({ type: "ping", ts: now }));
-        } catch {}
-      }
-
-      if (
-        link.state === "connected" &&
-        now - link.lastPong >= PONG_TIMEOUT_MS
-      ) {
-        try {
-          link.socket?.close();
-        } catch {}
-      }
-    });
-
-    selectActive();
-  }, HEARTBEAT_MS);
 }
 
 export function ensureBridgeTransport() {
   if (typeof window === "undefined") return;
 
-  loadEndpoints();
-  connect(links.usb);
-  connect(links.wifi);
-  startHeartbeat();
-  selectActive();
-}
+  installWindowListeners();
 
-export function configureDualBridge(
-  usbHostPort: string | null,
-  wifiHostPort: string | null,
-) {
-  if (typeof window === "undefined") return;
+  if (isRelayMode()) {
+    dispatchTransportState("connecting");
 
-  if (usbHostPort) {
-    window.localStorage.setItem("beyondUsbBridge", usbHostPort);
-  } else {
-    window.localStorage.removeItem("beyondUsbBridge");
+    window.parent.postMessage(
+      {
+        source: "beyond-wing",
+        type: "hello",
+      },
+      "*",
+    );
+
+    return;
   }
 
-  if (wifiHostPort) {
-    window.localStorage.setItem("beyondWifiBridge", wifiHostPort);
-  } else {
-    window.localStorage.removeItem("beyondWifiBridge");
-  }
-
-  (Object.values(links) as Link[]).forEach((link) => {
-    try {
-      link.socket?.close();
-    } catch {}
-
-    link.socket = null;
-    link.state = "disabled";
-    link.stableSince = 0;
-    link.lastPong = 0;
-  });
-
-  activeLink = null;
-  loadEndpoints();
-  connect(links.usb);
-  connect(links.wifi);
+  connectDirect();
 }
 
 function uiIdToControlId(id: string, layer: Layer): string | null {
@@ -406,9 +327,9 @@ function uiIdToControlId(id: string, layer: Layer): string | null {
 
   if (/^LAYER-[1-4]$/.test(id)) return id;
 
-  const g1 = id.match(/^G1-(\d+)$/);
-  if (g1) {
-    const cell = Number(g1[1]);
+  const grid1 = id.match(/^G1-(\d+)$/);
+  if (grid1) {
+    const cell = Number(grid1[1]);
 
     if (
       (layer === 1 || layer === 4) &&
@@ -421,9 +342,9 @@ function uiIdToControlId(id: string, layer: Layer): string | null {
     return null;
   }
 
-  const g2 = id.match(/^G2-(\d+)$/);
-  if (g2) {
-    const index = Number(g2[1]);
+  const grid2 = id.match(/^G2-(\d+)$/);
+  if (grid2) {
+    const index = Number(grid2[1]);
 
     if (index >= 1 && index <= 64) {
       const fxLayer =
@@ -439,12 +360,37 @@ function uiIdToControlId(id: string, layer: Layer): string | null {
 }
 
 function toMidi(binding: MidiBinding, value: number): number[] {
-  const v = Math.max(0, Math.min(127, Math.round(value)));
+  const clamped = Math.max(0, Math.min(127, Math.round(value)));
   const status =
     (binding.type === "note" ? 0x90 : 0xb0) +
     (binding.channel - 1);
 
-  return [status, binding.number & 0x7f, v];
+  return [status, binding.number & 0x7f, clamped];
+}
+
+function sendMidi(midi: number[]): boolean {
+  if (typeof window === "undefined") return false;
+
+  if (isRelayMode()) {
+    window.parent.postMessage(
+      {
+        source: "beyond-wing",
+        type: "midi",
+        midi,
+      },
+      "*",
+    );
+
+    return true;
+  }
+
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    ensureBridgeTransport();
+    return false;
+  }
+
+  socket.send(JSON.stringify({ type: "midi", midi }));
+  return true;
 }
 
 export function sendControlEvent(
@@ -469,7 +415,7 @@ export function sendControlEvent(
       type === "controlCancel"
     ) {
       midiValue = 0;
-    } else if (type !== "controlChange") {
+    } else {
       return false;
     }
   } else {
@@ -488,30 +434,34 @@ export function sendControlEvent(
     }
   }
 
-  selectActive();
+  return sendMidi(toMidi(control.midi, midiValue));
+}
 
-  const link = activeLink ? links[activeLink] : null;
-  const ws = link?.socket;
+export function configureBridge(hostPort: string) {
+  if (typeof window === "undefined") return;
 
-  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-
-  const midi = toMidi(control.midi, midiValue);
-
-  ws.send(
-    JSON.stringify({
-      type: "midi",
-      midi,
-      transport: activeLink,
-    }),
+  window.localStorage.setItem(
+    "beyondBridge",
+    normalizeBridgeAddress(hostPort),
   );
 
-  return true;
+  if (socket) {
+    try {
+      socket.close();
+    } catch {
+      // Nothing else to do.
+    }
+  }
+
+  socket = null;
+  ensureBridgeTransport();
 }
 
 export function getTransportSnapshot() {
   return {
-    active: activeLink,
-    usb: links.usb.state,
-    wifi: links.wifi.state,
+    active: state === "connected" ? "wifi" : null,
+    wifi: state,
+    usb: "disabled",
+    mode: isRelayMode() ? "local-relay" : "direct",
   };
 }
