@@ -36,9 +36,11 @@ export const BUTTON_NOTES = {
   toggle: 0x58,
   restart: 0x59,
   flash: 0x5A,
+  pageUp: 0x5B,
   oneCue: 0x5C,
   multiCue: 0x5D,
   groups: 0x5E,
+  pageDown: 0x5F,
 } as const;
 
 export const CC = {
