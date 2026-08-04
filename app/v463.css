@@ -1,0 +1,11 @@
+/* V4.6.3 — ONLY AUX Button Panel: 28px -> 30px */
+.aux-buttons {
+  grid-template-columns: repeat(8, 30px) !important;
+  grid-template-rows: repeat(2, 30px) !important;
+}
+.aux-buttons > .pad {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+}
