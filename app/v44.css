@@ -1,0 +1,170 @@
+/* V4.4 — corrected patch
+   Important: DO NOT enlarge the small left knobs.
+   This patch only:
+   1) keeps endless encoder LEDs visibly on,
+   2) makes the fader CAP slightly thicker,
+   3) reshapes/repositions the right-side button banks closer to the physical console,
+   4) slightly squares the LEFT GRID buttons,
+   5) hardens iPad Safari against magnifier/callout.
+*/
+
+/* ---------- iPad Safari gesture suppression ---------- */
+html,
+body,
+.surface,
+.surface * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html,
+body,
+.surface,
+button,
+.pad,
+.enc-touch,
+.abs-touch,
+.fader-touch {
+  touch-action: none !important;
+}
+
+html,
+body {
+  overscroll-behavior: none !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- LEFT GRID only: slightly more square ---------- */
+/* Do NOT touch the small knobs. */
+.grid2 .pad {
+  width: 89% !important;
+  justify-self: center !important;
+}
+
+/* ---------- Endless encoder LEDs stay visibly lit ---------- */
+.enc-ring i {
+  background: #424842 !important;
+  border-color: #171a17 !important;
+  opacity: .70 !important;
+}
+
+.enc-ring i.on {
+  background: #dbe3db !important;
+  box-shadow:
+    0 0 4px #eff8ef,
+    0 0 8px rgba(208, 226, 208, .42) !important;
+  opacity: 1 !important;
+}
+
+/* ---------- RIGHT BUTTON AREA: follow original console proportions ---------- */
+
+/* The original has:
+   - Layer 1..4: four compact square keys
+   - Half/Double/Resync/Tap: four compact square keys
+   - AUX Button Panel: 8 small compact keys
+   - Content tools: 8 small rectangular keys in 4 x 2
+   Keep them compact instead of stretching into long thin bars.
+*/
+
+/* Keep the first lower row compact. */
+.layers,
+.bpm {
+  gap: 10px !important;
+  padding: 0 5px !important;
+  align-items: center !important;
+}
+
+.named-key {
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  gap: 2px !important;
+}
+
+.named-key > .pad {
+  width: min(58px, 68%) !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+  align-self: center !important;
+}
+
+/* Second lower row: left side CC stays square; AUX = eight small keys. */
+.row-buttons {
+  grid-template-columns: minmax(0,28fr) minmax(0,42fr) minmax(0,30fr) !important;
+}
+
+.cc-buttons {
+  gap: 12px !important;
+  padding: 3px 10px !important;
+}
+
+.named-key.cc > .pad {
+  width: min(58px, 72%) !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+/* 8 AUX buttons: compact and nearly square like the hardware. */
+.aux-buttons {
+  grid-template-columns: repeat(8, minmax(0,1fr)) !important;
+  gap: 8px !important;
+  padding: 15px 6px 2px !important;
+  align-items: center !important;
+}
+
+.aux-buttons > .pad {
+  width: 72% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: center !important;
+}
+
+/* 8 Content Selection Tool buttons: 4 x 2, smaller and thicker.
+   Original is compact rectangles, not very long strips. */
+.content-tools {
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0,1fr)) !important;
+  gap: 7px 10px !important;
+  padding: 1px 4px !important;
+  align-items: center !important;
+}
+
+.tool-key {
+  display: grid !important;
+  grid-template-rows: auto minmax(26px, 1fr) !important;
+  gap: 3px !important;
+  place-items: center stretch !important;
+  min-height: 0 !important;
+}
+
+.tool-key > .pad {
+  width: 88% !important;
+  min-height: 27px !important;
+  max-height: 38px !important;
+  justify-self: center !important;
+}
+
+/* ---------- FADER: only the thing you physically PUSH gets a little thicker ---------- */
+/* Rail stays basically the same. */
+.rail {
+  width: 3px !important;
+}
+
+/* Only the fader CAP/handle gets slightly chunkier. */
+.fader-cap {
+  width: 124% !important;
+  height: 12.5% !important;
+  min-height: 10px !important;
+  max-height: 19px !important;
+}
+
+.fader-cap i {
+  height: 3px !important;
+  top: 47% !important;
+}
+
+/* Special right faders keep sane proportions. */
+.fader-unit.color .fader-cap,
+.fader-unit.led .fader-cap {
+  width: 88% !important;
+}
