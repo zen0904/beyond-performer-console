@@ -4,6 +4,7 @@ import "./globals.css";
 import "./v457.css";
 import "./v460.css";
 import "./v461.css";
+import "./v462.css";
 
 const basePath = process.env.GITHUB_ACTIONS ? "/beyond-performer-console" : "";
 
@@ -15,20 +16,12 @@ export const metadata: Metadata = {
     icon: [{ url: `${basePath}/favicon.svg`, type: "image/svg+xml" }],
     apple: [{ url: `${basePath}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" }],
   },
-  appleWebApp: {
-    capable: true,
-    title: "BEYOND Performer",
-    statusBarStyle: "black-translucent",
-  },
+  appleWebApp: { capable: true, title: "BEYOND Performer", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-  themeColor: "#0b0d0b",
+  width: "device-width", initialScale: 1, maximumScale: 1,
+  userScalable: false, viewportFit: "cover", themeColor: "#0b0d0b",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
