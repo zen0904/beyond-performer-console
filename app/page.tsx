@@ -109,7 +109,6 @@ function AbsoluteKnob({
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const drag = active.current.get(e.pointerId);
     if (!drag) return;
-    // 240px travel = full 0..100 range, no acceleration.
     update(drag.startValue + ((drag.startY - e.clientY) / 240) * 100, e.pointerId);
   };
 
@@ -186,7 +185,6 @@ function EndlessEncoder({
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const drag = active.current.get(e.pointerId);
     if (!drag) return;
-    // Deliberately slow and linear.
     update(drag.startValue + ((drag.startY - e.clientY) / 280) * 127, e.pointerId);
   };
 
@@ -221,7 +219,6 @@ function EndlessEncoder({
             );
           })}
         </div>
-        {/* Endless encoder: flat cap, intentionally NO white position stripe. */}
         <div className="enc-cap" />
       </div>
       <span>{label}</span>
@@ -321,17 +318,44 @@ const LAYER_NAMES: Record<Layer, string> = {
   4: "Content 2",
 };
 
+/*
+  TEXT/LABEL MAP ONLY.
+  These strings mirror the functional legends documented for the Performer Console.
+  They do not change control IDs, layout, sizing, positions, MIDI behavior, or feedback.
+*/
+const AUX_ENCODER_LEGEND: Record<Layer, string> = {
+  1: "Geometric Live Effects",
+  2: "Channels 5-8",
+  3: "Channels 5-8",
+  4: "DMX Channel Outs 1-4",
+};
+
+const GRID1_LEGEND: Record<Layer, string> = {
+  1: "Main Workspace",
+  2: "White+ Color / Cue-Sft Beat / Ef-Sft Beat Presets",
+  3: "Zone Flips / Selection Directionality / Groups",
+  4: "2nd Workspace",
+};
+
+const GRID2_LEGEND: Record<Layer, string> = {
+  1: "QuickFX / Color Picker / Zone Selection / Keys",
+  2: "Color Channels 1-4 / Individual Color Selections",
+  3: "Individual Zone Selections",
+  4: "Keys 1 / 8×8 Grid",
+};
+
+const AUX_BUTTON_LEGEND: Record<Layer, string> = {
+  1: "Grid UI Options",
+  2: "Color Palette Presets",
+  3: "Zone User Presets",
+  4: "2nd Workspace Functions",
+};
+
 export default function Home() {
   const [layer, setLayer] = useState<Layer>(1);
   const activePointers = useRef<Map<number, string>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
 
-  // BEYOND is the color/state authority.
-  // A local bridge can dispatch:
-  // window.dispatchEvent(new CustomEvent("beyond-feedback", {
-  //   detail: { id: "G1-1", color: "#36d9ff", active: true }
-  // }));
-  // Batch form is also accepted: { controls: [{ id, color, active }, ...] }.
   useEffect(() => {
     const faderPair: Record<string, string> = {
       "LIVE-E1": "ANIM",
@@ -363,7 +387,6 @@ export default function Home() {
         }
       });
 
-      // Live encoder color also owns the matching fader light-strip color.
       const pairedFader = faderPair[item.id];
       if (pairedFader && item.color) {
         document
@@ -402,10 +425,11 @@ export default function Home() {
   return (
     <main className="surface">
 
-      {/* TOP: 4 endless AUX encoders + master buttons */}
       <section className="top-row">
         <div className="aux-encoders">
-          <div className="caption">AUX Encoders <b>{LAYER_NAMES[layer]}</b></div>
+          <div className="caption">
+            AUX Encoders: <b>{AUX_ENCODER_LEGEND[layer]}</b>
+          </div>
           {[1,2,3,4].map((n) => (
             <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>
           ))}
@@ -419,10 +443,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* UPPER: exactly the two physical grids */}
       <section className="grid-row">
         <div className="grid-block">
-          <div className="caption">Grid 2 <b>{layer === 1 ? "QuickFX / Color Picker / Zone Selection / Keys" : LAYER_NAMES[layer]}</b></div>
+          <div className="caption">
+            Grid 2: <b>{GRID2_LEGEND[layer]}</b>
+          </div>
           <div className="grid grid2">
             {Array.from({ length: 64 }, (_, i) => (
               <Pad key={i} id={`G2-${i+1}`} onEvent={onEvent}/>
@@ -431,7 +456,9 @@ export default function Home() {
         </div>
 
         <div className="grid-block">
-          <div className="caption">Grid 1 <b>Main Grid / Color-Delays / Zone Parameters / 2nd Workspace</b></div>
+          <div className="caption">
+            Grid 1: <b>{GRID1_LEGEND[layer]}</b>
+          </div>
           <div className="grid grid1">
             {Array.from({ length: 48 }, (_, i) => (
               <Pad key={i} id={`G1-${i+1}`} onEvent={onEvent}/>
@@ -440,7 +467,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MID 1: hardware row = FX Action + Channels | Layers | BPM */}
       <section className="controls-row row-knobs-layers">
         <div className="fx-channels">
           <div className="subgroup"><span>FX Action</span>
@@ -476,7 +502,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MID 2: hardware row = CC1..4 | AUX Button Panel | Content Selection Tools */}
       <section className="controls-row row-buttons">
         <div className="cc-buttons">
           {["CC1","CC2","CC3","CC4"].map((label, i) => (
@@ -488,7 +513,9 @@ export default function Home() {
         </div>
 
         <div className="aux-buttons">
-          <div className="caption">AUX Button Panel</div>
+          <div className="caption">
+            AUX Button Panel: <b>{AUX_BUTTON_LEGEND[layer]}</b>
+          </div>
           {Array.from({ length: 16 }, (_, i) => (
             <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>
           ))}
@@ -504,7 +531,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MID 3: Q-Shift knobs on left, LED endless encoders on right */}
       <section className="controls-row row-encoder-banks">
         <div className="qshift-knobs">
           <div className="caption">Q-Shift</div>
@@ -521,7 +547,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* BOTTOM: 8 Q-Shift faders + 8 live faders */}
       <section className="fader-row">
         <div className="qshift-faders">
           {[1,2,3,4,5,6,7,8].map((n) => (
