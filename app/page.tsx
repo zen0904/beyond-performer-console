@@ -20,7 +20,11 @@ type FeedbackDetail = FeedbackItem | { controls?: FeedbackItem[] };
 
 function feedbackForId(detail: FeedbackDetail | undefined, id: string): FeedbackItem | undefined {
   if (!detail) return undefined;
-  if ("id" in detail) return detail.id === id ? detail : undefined;
+
+  if ("id" in detail) {
+    return detail.id === id ? detail : undefined;
+  }
+
   return detail.controls?.find((item) => item.id === id);
 }
 
@@ -41,33 +45,38 @@ function Pad({
 }) {
   const [held, setHeld] = useState<Set<number>>(new Set());
   const [latched, setLatched] = useState(false);
-  const [feedback, setFeedback] = useState<FeedbackItem | undefined>(() => getControlFeedback(id));
+  const [feedbackKnown, setFeedbackKnown] = useState(false);
+  const [feedbackActive, setFeedbackActive] = useState(false);
 
   useEffect(() => {
     const apply = (item: FeedbackItem | undefined) => {
-      if (item) setFeedback((previous) => ({ ...previous, ...item }));
+      if (!item || typeof item.active !== "boolean") return;
+      setFeedbackKnown(true);
+      setFeedbackActive(item.active);
     };
+
     apply(getControlFeedback(id));
+
     const handler = (event: Event) => {
       apply(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
     };
+
     window.addEventListener("beyond-feedback", handler as EventListener);
     return () => window.removeEventListener("beyond-feedback", handler as EventListener);
   }, [id]);
 
   const isPressed = held.size > 0;
-  const state = feedback?.state;
-  const feedbackHasState = Boolean(state && state !== "empty");
-  const feedbackActive = Boolean(feedback?.active || state === "playing");
-  const feedbackKnown = Boolean(feedback && (typeof feedback.active === "boolean" || state));
-  const localLatched = !feedbackKnown && latched;
-  const hasBeyondFeedback = feedbackActive || feedbackHasState;
+  const isActive = active || isPressed || (feedbackKnown ? feedbackActive : latched);
 
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    setHeld((prev) => new Set(prev).add(e.pointerId));
+    setHeld((prev) => {
+      const next = new Set(prev);
+      next.add(e.pointerId);
+      return next;
+    });
     if (mode === "toggle" && !onPress && !feedbackKnown) setLatched((v) => !v);
     onPress?.();
     onEvent("controlDown", id, 127, e.pointerId);
@@ -82,24 +91,11 @@ function Pad({
     onEvent(cancelled ? "controlCancel" : "controlUp", id, 0, e.pointerId);
   };
 
-  const classNames = [
-    "pad",
-    isPressed || active || localLatched ? "is-active" : "",
-    hasBeyondFeedback ? "has-beyond-feedback beyond-active" : "",
-    state ? `feedback-${state}` : "",
-  ].filter(Boolean).join(" ");
-
-  const style = feedback?.color
-    ? ({ "--feedback-color": feedback.color, "--beyond-color": feedback.color } as React.CSSProperties)
-    : undefined;
-
   return (
     <button
       type="button"
       data-control-id={id}
-      data-feedback-state={state}
-      className={classNames}
-      style={style}
+      className={`pad ${isActive ? "is-active" : ""}`}
       onPointerDown={down}
       onPointerUp={(e) => up(e)}
       onPointerCancel={(e) => up(e, true)}
@@ -137,9 +133,11 @@ function AbsoluteKnob({
 
   useEffect(() => {
     applyFeedback(getControlFeedback(id));
+
     const handler = (event: Event) => {
       applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
     };
+
     window.addEventListener("beyond-feedback", handler as EventListener);
     return () => window.removeEventListener("beyond-feedback", handler as EventListener);
   }, [id, applyFeedback]);
@@ -179,21 +177,27 @@ function AbsoluteKnob({
   };
 
   const angle = -135 + (value / 100) * 270;
+
   return (
     <div className="abs-unit" data-control-id={id}>
-      <div className="abs-touch" onPointerDown={down} onPointerMove={move} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e, true)} onContextMenu={(e) => e.preventDefault()}>
+      <div
+        className="abs-touch"
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={(e) => end(e)}
+        onPointerCancel={(e) => end(e, true)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="abs-scale" />
-        <div className="abs-cap" style={{ transform: `rotate(${angle}deg)` }}><i /></div>
+        <div className="abs-cap" style={{ transform: `rotate(${angle}deg)` }}>
+          <i />
+        </div>
       </div>
       <span>{label}</span>
     </div>
   );
 }
 
-/*
-  Absolute/bounded 0..127 controller with the same LED-ring visual language as
-  an endless encoder. MIDI semantics stay absolute; only the skin is ring-based.
-*/
 function EndlessEncoder({
   id,
   label,
@@ -223,9 +227,11 @@ function EndlessEncoder({
 
   useEffect(() => {
     applyFeedback(getControlFeedback(id));
+
     const handler = (event: Event) => {
       applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
     };
+
     window.addEventListener("beyond-feedback", handler as EventListener);
     return () => window.removeEventListener("beyond-feedback", handler as EventListener);
   }, [id, applyFeedback]);
@@ -269,13 +275,27 @@ function EndlessEncoder({
   };
 
   const activeLed = Math.round((value / 127) * (LED_COUNT - 1));
+
   return (
     <div className={`enc-unit ${touching ? "touching" : ""}`} data-control-id={id}>
-      <div className="enc-touch" onPointerDown={down} onPointerMove={move} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e, true)} onContextMenu={(e) => e.preventDefault()}>
+      <div
+        className="enc-touch"
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={(e) => end(e)}
+        onPointerCancel={(e) => end(e, true)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="enc-ring" aria-hidden="true">
           {Array.from({ length: LED_COUNT }, (_, i) => {
             const angle = -135 + (270 / (LED_COUNT - 1)) * i;
-            return <i key={i} className={i <= activeLed ? "on" : ""} style={{ "--a": `${angle}deg` } as React.CSSProperties} />;
+            return (
+              <i
+                key={i}
+                className={i <= activeLed ? "on" : ""}
+                style={{ "--a": `${angle}deg` } as React.CSSProperties}
+              />
+            );
           })}
         </div>
         <div className="enc-cap" />
@@ -311,7 +331,11 @@ function VerticalFader({
 
   useEffect(() => {
     applyFeedback(getControlFeedback(id));
-    const handler = (event: Event) => applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+
+    const handler = (event: Event) => {
+      applyFeedback(feedbackForId((event as CustomEvent<FeedbackDetail>).detail, id));
+    };
+
     window.addEventListener("beyond-feedback", handler as EventListener);
     return () => window.removeEventListener("beyond-feedback", handler as EventListener);
   }, [id, applyFeedback]);
@@ -329,11 +353,13 @@ function VerticalFader({
     e.preventDefault();
     const el = e.currentTarget;
     el.setPointerCapture(e.pointerId);
+
     const rect = el.getBoundingClientRect();
     const top = rect.top + 8;
     const bottom = rect.bottom - 8;
     const handleY = bottom - (valueRef.current / 127) * (bottom - top);
     const grabOffset = Math.abs(e.clientY - handleY) < 28 ? e.clientY - handleY : 0;
+
     active.current.set(e.pointerId, { grabOffset });
     const next = fromY(el, e.clientY, grabOffset);
     valueRef.current = next;
@@ -358,9 +384,17 @@ function VerticalFader({
   };
 
   const pct = (value / 127) * 100;
+
   return (
     <div className={`fader-unit ${variant}`} data-control-id={id}>
-      <div className="fader-touch" onPointerDown={down} onPointerMove={move} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e, true)} onContextMenu={(e) => e.preventDefault()}>
+      <div
+        className="fader-touch"
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={(e) => end(e)}
+        onPointerCancel={(e) => end(e, true)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="rail" />
         <div className="fader-level" aria-hidden="true">
           <div className="fader-level-fill" style={{ height: `${pct}%` }} />
@@ -375,25 +409,39 @@ function VerticalFader({
   );
 }
 
-const LAYER_NAMES: Record<Layer, string> = { 1: "Content", 2: "Colors", 3: "Zones", 4: "Content 2" };
+const LAYER_NAMES: Record<Layer, string> = {
+  1: "Content",
+  2: "Colors",
+  3: "Zones",
+  4: "Content 2",
+};
+
+/*
+  TEXT/LABEL MAP ONLY.
+  These strings mirror the functional legends documented for the Performer Console.
+  They do not change control IDs, layout, sizing, positions, MIDI behavior, or feedback.
+*/
 const AUX_ENCODER_LEGEND: Record<Layer, string> = {
   1: "Geometric Live Effects",
   2: "Channels 5-8",
   3: "Channels 5-8",
   4: "DMX Channel Outs 1-4",
 };
+
 const GRID1_LEGEND: Record<Layer, string> = {
   1: "Main Workspace",
   2: "White+ Color / Cue-Sft Beat / Ef-Sft Beat Presets",
   3: "Zone Flips / Selection Directionality / Groups",
   4: "2nd Workspace",
 };
+
 const GRID2_LEGEND: Record<Layer, string> = {
   1: "QuickFX / Color Picker / Zone Selection / Keys",
   2: "Color Channels 1-4 / Individual Color Selections",
   3: "Individual Zone Selections",
   4: "Keys 1 / 8×8 Grid",
 };
+
 const AUX_BUTTON_LEGEND: Record<Layer, string> = {
   1: "Grid UI Options",
   2: "Color Palette Presets",
@@ -405,14 +453,15 @@ export default function Home() {
   const [layer, setLayer] = useState<Layer>(1);
   const activePointers = useRef<Map<number, string>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
-  const [transport, setTransport] = useState<{ active: TransportName; usb: string; wifi: string }>({
-    active: null,
-    usb: "disabled",
-    wifi: "disabled",
-  });
+  const [transport, setTransport] = useState<{
+    active: TransportName;
+    usb: string;
+    wifi: string;
+  }>({ active: null, usb: "disabled", wifi: "disabled" });
 
   useEffect(() => {
     ensureBridgeTransport();
+
     const transportHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       setTransport({
@@ -421,9 +470,13 @@ export default function Home() {
         wifi: detail?.wifi?.state ?? "disabled",
       });
     };
+
     window.addEventListener("beyond-transport-state", transportHandler as EventListener);
     window.setTimeout(replayFeedback, 0);
-    return () => window.removeEventListener("beyond-transport-state", transportHandler as EventListener);
+
+    return () => {
+      window.removeEventListener("beyond-transport-state", transportHandler as EventListener);
+    };
   }, []);
 
   const onEvent = useCallback<EventSink>((type, id, value, pointerId) => {
@@ -435,11 +488,17 @@ export default function Home() {
 
   return (
     <main className="surface">
+
       <section className="top-row">
         <div className="aux-encoders">
-          <div className="caption">AUX Encoders: <b style={{ fontSize: "1.12em" }}>{AUX_ENCODER_LEGEND[layer]}</b></div>
-          {[1,2,3,4].map((n) => <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>)}
+          <div className="caption">
+            AUX Encoders: <b style={{ fontSize: "1.12em" }}>{AUX_ENCODER_LEGEND[layer]}</b>
+          </div>
+          {[1,2,3,4].map((n) => (
+            <EndlessEncoder key={n} id={`AUX-E${n}`} label={`AUX ${n}`} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="master">
           <div className="caption">Master Functions</div>
           {["Physics","Blackout","Pause","Enable / Disable"].map((label, i) => (
@@ -450,12 +509,25 @@ export default function Home() {
 
       <section className="grid-row">
         <div className="grid-block">
-          <div className="caption">Grid 2: <b style={{ fontSize: "1.12em" }}>{GRID2_LEGEND[layer]}</b></div>
-          <div className="grid grid2">{Array.from({ length: 64 }, (_, i) => <Pad key={i} id={`G2-${i+1}`} onEvent={onEvent}/>)}</div>
+          <div className="caption">
+            Grid 2: <b style={{ fontSize: "1.12em" }}>{GRID2_LEGEND[layer]}</b>
+          </div>
+          <div className="grid grid2">
+            {Array.from({ length: 64 }, (_, i) => (
+              <Pad key={i} id={`G2-${i+1}`} onEvent={onEvent}/>
+            ))}
+          </div>
         </div>
+
         <div className="grid-block">
-          <div className="caption">Grid 1: <b style={{ fontSize: "1.12em" }}>{GRID1_LEGEND[layer]}</b></div>
-          <div className="grid grid1">{Array.from({ length: 48 }, (_, i) => <Pad key={i} id={`G1-${i+1}`} onEvent={onEvent}/>)}</div>
+          <div className="caption">
+            Grid 1: <b style={{ fontSize: "1.12em" }}>{GRID1_LEGEND[layer]}</b>
+          </div>
+          <div className="grid grid1">
+            {Array.from({ length: 48 }, (_, i) => (
+              <Pad key={i} id={`G1-${i+1}`} onEvent={onEvent}/>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -468,7 +540,7 @@ export default function Home() {
           </div>
           <div className="subgroup"><span>Channels</span>
             <div className="four-knobs">
-              {[1,2,3,4].map((n) => <EndlessEncoder key={n} id={`CH-${n}`} label={`${n}`} initial={0} defaultValue={0} onEvent={onEvent}/>)}
+              {[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`CH-${n}`} label={`${n}`} onEvent={onEvent}/>)}
             </div>
           </div>
         </div>
@@ -486,7 +558,9 @@ export default function Home() {
         <div className="bpm">
           {["Half","Double","Resync","Tap"].map((label, i) => (
             <div className="named-key" key={label}>
-              <span>{label}</span><Pad id={`BPM-${i+1}`} onEvent={onEvent}/><small>BPM</small>
+              <span>{label}</span>
+              <Pad id={`BPM-${i+1}`} onEvent={onEvent}/>
+              <small>BPM</small>
             </div>
           ))}
         </div>
@@ -495,25 +569,42 @@ export default function Home() {
       <section className="controls-row row-buttons">
         <div className="cc-buttons">
           {["CC1","CC2","CC3","CC4"].map((label, i) => (
-            <div className="named-key cc" key={label}><Pad id={`CC-${i+1}`} onEvent={onEvent}/><span>{label}</span></div>
+            <div className="named-key cc" key={label}>
+              <Pad id={`CC-${i+1}`} onEvent={onEvent}/>
+              <span>{label}</span>
+            </div>
           ))}
         </div>
+
         <div className="aux-buttons">
-          <div className="caption">AUX Button Panel: <b style={{ fontSize: "1.12em" }}>{AUX_BUTTON_LEGEND[layer]}</b></div>
-          {Array.from({ length: 16 }, (_, i) => <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>) }
+          <div className="caption">
+            AUX Button Panel: <b style={{ fontSize: "1.12em" }}>{AUX_BUTTON_LEGEND[layer]}</b>
+          </div>
+          {Array.from({ length: 16 }, (_, i) => (
+            <Pad key={i} id={`AUX-B${i+1}`} label={`${i+1}`} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="content-tools">
           {["Toggle","Restart","Flash","Page Up","One Cue","Multi Cue","Groups","Page Down"].map((label, i) => (
-            <div className="tool-key" key={label}><span>{label}</span><Pad id={`TOOL-${i+1}`} mode={i === 0 ? "toggle" : "momentary"} onEvent={onEvent}/></div>
+            <div className="tool-key" key={label}>
+              <span>{label}</span>
+              <Pad id={`TOOL-${i+1}`} mode={i === 0 ? "toggle" : "momentary"} onEvent={onEvent}/>
+            </div>
           ))}
         </div>
       </section>
 
       <section className="controls-row row-encoder-banks">
-        <div className="qshift-knobs"><div className="caption">Q-Shift</div>
-          {[1,2,3,4,5,6,7,8].map((n) => <AbsoluteKnob key={n} id={`Q-${n}`} label={`${n}`} onEvent={onEvent}/>)}
+        <div className="qshift-knobs">
+          <div className="caption">Q-Shift</div>
+          {[1,2,3,4,5,6,7,8].map((n) => (
+            <AbsoluteKnob key={n} id={`Q-${n}`} label={`${n}`} onEvent={onEvent}/>
+          ))}
         </div>
-        <div className="live-encoders"><div className="caption">LIVE CONTROL EFFECTS</div>
+
+        <div className="live-encoders">
+          <div className="caption">LIVE CONTROL EFFECTS</div>
           {["Cue Speed","RotoZ Move","Cue-Sft Clock","Ef-Sft Clock","Brush Shift","Hue Shift","Saturation","Scanrate"].map((label, i) => (
             <EndlessEncoder key={label} id={`LIVE-E${i+1}`} label={label} defaultValue={i === 2 || i === 3 ? 0 : 64} initial={i === 2 || i === 3 ? 0 : 64} onEvent={onEvent}/>
           ))}
@@ -522,8 +613,11 @@ export default function Home() {
 
       <section className="fader-row">
         <div className="qshift-faders">
-          {[1,2,3,4,5,6,7,8].map((n) => <VerticalFader key={n} id={`QF-${n}`} label={`${n}`} initial={0} onEvent={onEvent}/>)}
+          {[1,2,3,4,5,6,7,8].map((n) => (
+            <VerticalFader key={n} id={`QF-${n}`} label={`${n}`} initial={0} onEvent={onEvent}/>
+          ))}
         </div>
+
         <div className="live-faders">
           <VerticalFader id="ANIM" label="Anim Speed" initial={38} variant="led" onEvent={onEvent}/>
           <VerticalFader id="SIZE" label="Size XY" initial={62} onEvent={onEvent}/>
@@ -537,7 +631,9 @@ export default function Home() {
       </section>
 
       <div className="status">
-        LAYER {layer} · {LAYER_NAMES[layer]} · {activeCount} TOUCH · TRANSPORT {transport.active ? transport.active.toUpperCase() : "OFF"} · USB {transport.usb.toUpperCase()} · WIFI {transport.wifi.toUpperCase()}
+        LAYER {layer} · {LAYER_NAMES[layer]} · {activeCount} TOUCH ·
+        TRANSPORT {transport.active ? transport.active.toUpperCase() : "OFF"} ·
+        USB {transport.usb.toUpperCase()} · WIFI {transport.wifi.toUpperCase()}
       </div>
     </main>
   );
