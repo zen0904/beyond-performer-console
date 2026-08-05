@@ -42,7 +42,7 @@ let feedbackHealth: FeedbackHealth = "unknown";
 let lastFeedbackAt = 0;
 let lastControlAt = 0;
 let lastRecoveryAt = 0;
-let feedbackExpectTimer: ReturnType<typeof setTimeout> | null = null;
+let feedbackExpectTimer: number | null = null;
 const feedbackCache = new Map<string, FeedbackItem>();
 const mainGridLastOnAt = new Map<string, number>();
 
@@ -118,7 +118,7 @@ function dispatchFeedbackHealth(next: FeedbackHealth, reason?: string) {
 function markFeedbackAlive() {
   lastFeedbackAt = Date.now();
   if (feedbackExpectTimer) {
-    clearTimeout(feedbackExpectTimer);
+    window.clearTimeout(feedbackExpectTimer);
     feedbackExpectTimer = null;
   }
   if (feedbackHealth !== "alive") dispatchFeedbackHealth("alive", "midi-feedback");
@@ -156,7 +156,7 @@ function expectFeedbackAfterControl() {
   const controlAt = lastControlAt;
   const feedbackSeenBeforeControl = lastFeedbackAt;
 
-  if (feedbackExpectTimer) clearTimeout(feedbackExpectTimer);
+  if (feedbackExpectTimer) window.clearTimeout(feedbackExpectTimer);
   feedbackExpectTimer = window.setTimeout(() => {
     feedbackExpectTimer = null;
     if (lastControlAt !== controlAt) return;
