@@ -45,14 +45,12 @@ function Pad({
 }) {
   const [held, setHeld] = useState<Set<number>>(new Set());
   const [latched, setLatched] = useState(false);
-  const [feedbackKnown, setFeedbackKnown] = useState(false);
-  const [feedbackActive, setFeedbackActive] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackItem | null>(null);
 
   useEffect(() => {
     const apply = (item: FeedbackItem | undefined) => {
-      if (!item || typeof item.active !== "boolean") return;
-      setFeedbackKnown(true);
-      setFeedbackActive(item.active);
+      if (!item) return;
+      setFeedback(item);
     };
 
     apply(getControlFeedback(id));
@@ -66,7 +64,52 @@ function Pad({
   }, [id]);
 
   const isPressed = held.size > 0;
-  const isActive = active || isPressed || (feedbackKnown ? feedbackActive : latched);
+  const feedbackKnown = feedback !== null;
+  const feedbackState = feedback?.state;
+  const feedbackActive = feedback?.active === true || feedbackState === "playing";
+  const feedbackVisible =
+    feedbackActive || feedbackState === "used" || feedbackState === "focused";
+  const localActive = active || isPressed || (!feedbackKnown && latched);
+
+  const fallbackFeedbackColor =
+    id === "MASTER-2" || id === "MASTER-4"
+      ? "#ff2448"
+      : id === "MASTER-3"
+        ? "#ffb020"
+        : feedbackState === "focused"
+          ? "#d9e2ff"
+          : feedbackState === "used"
+            ? "#718096"
+            : "#f2f2ea";
+
+  const beyondColor = feedback?.color || fallbackFeedbackColor;
+  const className = [
+    "pad",
+    localActive ? "is-active" : "",
+    feedbackVisible ? "has-beyond-feedback" : "",
+    feedbackActive ? "beyond-active" : "",
+    feedbackState ? `feedback-${feedbackState}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const feedbackStyle = feedbackVisible
+    ? ({
+        "--beyond-color": beyondColor,
+        "--feedback-color": beyondColor,
+      } as React.CSSProperties)
+    : undefined;
+
+  const shownLabel =
+    id === "MASTER-2"
+      ? feedbackActive
+        ? "BLACKOUT ON"
+        : "Blackout"
+      : id === "MASTER-3"
+        ? feedbackActive
+          ? "PAUSED"
+          : "Pause"
+        : label;
 
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -95,13 +138,15 @@ function Pad({
     <button
       type="button"
       data-control-id={id}
-      className={`pad ${isActive ? "is-active" : ""}`}
+      data-feedback-state={feedbackState}
+      className={className}
+      style={feedbackStyle}
       onPointerDown={down}
       onPointerUp={(e) => up(e)}
       onPointerCancel={(e) => up(e, true)}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {label ? <span>{label}</span> : null}
+      {shownLabel ? <span>{shownLabel}</span> : null}
     </button>
   );
 }
@@ -599,7 +644,7 @@ export default function Home() {
         <div className="qshift-knobs">
           <div className="caption">Q-Shift</div>
           {[1,2,3,4,5,6,7,8].map((n) => (
-            <AbsoluteKnob key={n} id={`Q-${n}`} label={`${n}`} onEvent={onEvent}/>
+            <EndlessEncoder key={n} id={`Q-${n}`} label={`${n}`} initial={0} defaultValue={0} onEvent={onEvent}/>
           ))}
         </div>
 

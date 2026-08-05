@@ -31,7 +31,8 @@ export type FeedbackItem = {
   state?: FeedbackVisualState;
 };
 
-const FEEDBACK_CACHE_KEY = "beyondWingFeedbackCacheV2";
+const FEEDBACK_CACHE_KEY = "beyondWingFeedbackCacheV4";
+const MAIN_GRID_RELEASE_GUARD_MS = 450;
 
 let socket: WebSocket | null = null;
 let state: TransportState = "disconnected";
@@ -39,6 +40,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let listenersInstalled = false;
 let cacheLoaded = false;
 const feedbackCache = new Map<string, FeedbackItem>();
+const mainGridLastOnAt = new Map<string, number>();
 
 // The BPC MIDI input can echo the exact Note Off we send when a web button is released.
 // For latched cue/QuickFX buttons that echo must not be mistaken for "playback stopped".
@@ -257,6 +259,41 @@ function getFxFeedbackState(
   return "empty";
 }
 
+function isMainGridControl(controlId: string): boolean {
+  return /^L[14]-GRID1-\d+$/.test(controlId);
+}
+
+function normalizeMainGridFeedback(
+  controlId: string,
+  value: number,
+): { active: boolean; state: FeedbackVisualState; value: number } {
+  const now = performance.now();
+  const uiId = controlToUiIds(controlId)[0];
+  const previous = feedbackCache.get(uiId);
+
+  if (value > 0) {
+    mainGridLastOnAt.set(controlId, now);
+    return { active: true, state: "playing", value };
+  }
+
+  const lastOn = mainGridLastOnAt.get(controlId) ?? -Infinity;
+  const looksLikeImmediateKeyRelease = now - lastOn <= MAIN_GRID_RELEASE_GUARD_MS;
+
+  // BEYOND/BPC can emit an immediate release after the trigger even though the cue
+  // remains running. Keep PLAYING through only that immediate release. A later OFF
+  // from BEYOND still clears the cue normally.
+  if (looksLikeImmediateKeyRelease && previous?.active) {
+    return {
+      active: true,
+      state: previous.state ?? "playing",
+      value: previous.value ?? 127,
+    };
+  }
+
+  mainGridLastOnAt.delete(controlId);
+  return { active: false, state: "empty", value: 0 };
+}
+
 function applyMidiFeedback(bytes: number[]) {
   if (typeof window === "undefined" || bytes.length < 3) return;
 
@@ -295,16 +332,23 @@ function applyMidiFeedback(bytes: number[]) {
         }
       }
 
-      const visualState = getFxFeedbackState(entry.id, value);
-      const active = visualState
-        ? visualState === "playing"
-        : value > 0;
+      const fxState = getFxFeedbackState(entry.id, value);
+      const mainGrid = isMainGridControl(entry.id)
+        ? normalizeMainGridFeedback(entry.id, value)
+        : null;
+      const visualState = fxState ?? mainGrid?.state;
+      const active = mainGrid
+        ? mainGrid.active
+        : fxState
+          ? fxState === "playing"
+          : value > 0;
+      const normalizedValue = mainGrid?.value ?? value;
 
       return controlToUiIds(entry.id).map((id) => ({
         id,
         sourceId: entry.id,
         active,
-        value,
+        value: normalizedValue,
         state: visualState,
         color: feedbackColor(entry.id, active, visualState),
         raw: bytes,
