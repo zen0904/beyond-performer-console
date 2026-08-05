@@ -585,7 +585,7 @@ export default function Home() {
           </div>
           <div className="subgroup"><span>Channels</span>
             <div className="four-knobs">
-              {[1,2,3,4].map((n) => <AbsoluteKnob key={n} id={`CH-${n}`} label={`${n}`} onEvent={onEvent}/>)}
+              {[1,2,3,4].map((n) => <EndlessEncoder key={n} id={`CH-${n}`} label={`${n}`} initial={0} defaultValue={0} onEvent={onEvent}/>)}
             </div>
           </div>
         </div>
