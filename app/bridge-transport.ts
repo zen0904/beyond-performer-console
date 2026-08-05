@@ -626,10 +626,13 @@ export function sendControlEvent(
       return true;
     }
 
-    if (
-      type !== "controlDown" &&
-      type !== "controlChange"
-    ) {
+    // Soft takeover: a touch never transmits the cached/default UI value.
+    // Only actual movement (controlChange) is allowed to write into BEYOND.
+    if (type === "controlDown") {
+      return true;
+    }
+
+    if (type !== "controlChange") {
       return false;
     }
   }

@@ -203,6 +203,15 @@ function AbsoluteKnob({
       return;
     }
     lastTap.current = now;
+
+    // BEYOND is authoritative: sync from the latest feedback before takeover.
+    const latest = getControlFeedback(id);
+    if (latest && typeof latest.value === "number") {
+      const synced = clamp(Math.round((latest.value / 127) * 100), 0, 100);
+      valueRef.current = synced;
+      setValue(synced);
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId);
     active.current.set(e.pointerId, { startY: e.clientY, startValue: valueRef.current });
     onEvent("controlDown", id, Math.round(valueRef.current * 1.27), e.pointerId);
@@ -297,6 +306,15 @@ function EndlessEncoder({
       return;
     }
     lastTap.current = now;
+
+    // BEYOND is authoritative: start the drag from BEYOND's latest CC value.
+    const latest = getControlFeedback(id);
+    if (latest && typeof latest.value === "number") {
+      const synced = clamp(Math.round(latest.value), 0, 127);
+      valueRef.current = synced;
+      setValue(synced);
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId);
     active.current.set(e.pointerId, { startY: e.clientY, startValue: valueRef.current });
     setTouching(true);
@@ -397,8 +415,16 @@ function VerticalFader({
   const down = (e: PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const el = e.currentTarget;
-    el.setPointerCapture(e.pointerId);
 
+    // BEYOND is authoritative: touching alone must not jump or transmit a value.
+    const latest = getControlFeedback(id);
+    if (latest && typeof latest.value === "number") {
+      const synced = clamp(Math.round(latest.value), 0, 127);
+      valueRef.current = synced;
+      setValue(synced);
+    }
+
+    el.setPointerCapture(e.pointerId);
     const rect = el.getBoundingClientRect();
     const top = rect.top + 8;
     const bottom = rect.bottom - 8;
@@ -406,10 +432,7 @@ function VerticalFader({
     const grabOffset = Math.abs(e.clientY - handleY) < 28 ? e.clientY - handleY : 0;
 
     active.current.set(e.pointerId, { grabOffset });
-    const next = fromY(el, e.clientY, grabOffset);
-    valueRef.current = next;
-    setValue(next);
-    onEvent("controlDown", id, next, e.pointerId);
+    onEvent("controlDown", id, valueRef.current, e.pointerId);
   };
 
   const move = (e: PointerEvent<HTMLDivElement>) => {
